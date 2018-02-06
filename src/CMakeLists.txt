@@ -1,1 +1,1 @@
-add_subdirectory(pusher)
+add_subdirectory(benchmark)
