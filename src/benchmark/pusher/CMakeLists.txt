@@ -1,2 +1,3 @@
 add_subdirectory(baseline)
 add_subdirectory(precomputing)
+add_subdirectory(vectorized)
