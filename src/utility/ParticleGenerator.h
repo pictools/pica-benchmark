@@ -23,20 +23,20 @@ void generateParticle(ParticleRef particle, Random& random)
     PositionType position;
     PositionType minPosition(0.0, 0.0, 0.0);
     PositionType maxPosition(1.0, 1.0, 1.0);
-    for (int d = 0; d < VectorDimensionHelper<PositionType>::dimension; d++)
+    for (int d = 0; d < pica::VectorDimensionHelper<PositionType>::dimension; d++)
         position[d] = minPosition[d] + (maxPosition[d] - minPosition[d]) * random.getUniform();
     particle.setPosition(position);
     // The standard deviation is sqrt(1/(2*alpha)), where alpha is
     // 3/2 * ((T/mc^2 + 1)^2 - 1)^(-1)
     double temperature = 1.0;
-    double alpha = temperature / particle.getMass() / constants::c / constants::c + 1;
+    double alpha = temperature / particle.getMass() / pica::constants::c / pica::constants::c + 1;
     alpha = 1.5 / (alpha * alpha - 1);
-    double sigma = sqrt(0.5 / alpha) * particle.getMass() * constants::c;
+    double sigma = sqrt(0.5 / alpha) * particle.getMass() * pica::constants::c;
     // Initial particle momentum is combination of given initial
     // momentum based on coords and random term in N(0, sigma)
     typedef pica::Vector3<double> MomentumType; /// todo - remove hardcoded type
     MomentumType momentum;
-    for (int d = 0; d < VectorDimensionHelper<MomentumType>::dimension; d++)
+    for (int d = 0; d < pica::VectorDimensionHelper<MomentumType>::dimension; d++)
         momentum[d] = random.getNormal() * sigma;
     particle.setMomentum(momentum);
 }

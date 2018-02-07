@@ -6,87 +6,14 @@
 #include "utility/Random.h"
 #include "utility/Timer.h"
 
+#include "pica/math/Dimension.h"
 #include "pica/math/Vectors.h"
+#include "pica/particles/ParticleBaseline.h"
 #include "pica/particles/ParticleArray.h"
 #include "pica/particlePush/BorisPusherBaseline.h"
 #include "pica/threading/OpenMPHelper.h"
 
 #include <algorithm>
-
-using namespace pica;
-
-// A simple type for particle
-class ParticleAoS {
-public:
-
-    // Types for conforming ParticleInterface
-    typedef double Real;
-    typedef Vector3<Real> PositionType;
-    typedef Vector3<Real> MomentumType;
-    typedef Real GammaType;
-    typedef Real MassType;
-    typedef Real ChargeType;
-    typedef float FactorType;
-
-    ParticleAoS() :
-        factor(1),
-        mass(0.0),
-        charge(0.0),
-        invGamma(1.0) {}
-
-    ParticleAoS(const PositionType& position, const MomentumType& momentum,
-        MassType mass, ChargeType charge, FactorType factor = 1) :
-        position(position), mass(mass), charge(charge), factor(factor)
-    {
-        setMomentum(momentum);
-    }
-
-    PositionType getPosition() const { return position; }
-    void setPosition(const PositionType& newPosition) { position = newPosition; }
-
-    MomentumType getMomentum() const
-    {
-        return p * Constants<MassType>::c() * mass;
-    }
-
-    void setMomentum(const MomentumType& newMomentum)
-    {
-        p = newMomentum / (Constants<GammaType>::c() * mass);
-        invGamma = static_cast<GammaType>(1.0) / sqrt(static_cast<GammaType>(1.0) + p.norm2());
-    }
-
-    MomentumType getVelocity() const
-    {
-        return p * (Constants<GammaType>::c() * invGamma);
-    }
-
-    void setVelocity(const MomentumType& newVelocity)
-    {
-        p = newVelocity / sqrt(constants::c * constants::c - newVelocity.norm2());
-        invGamma = (FP)1 / sqrt((FP)1 + p.norm2());
-    }
-
-    GammaType getGamma() const { return static_cast<GammaType>(1.0) / invGamma; }
-
-    MassType getMass() const { return mass; }
-    void setMass(MassType newMass) { mass = newMass; }
-
-    ChargeType getCharge() const { return charge; }
-    void setCharge(ChargeType newCharge) { charge = newCharge; }
-
-    FactorType getFactor() const { return factor; }
-    void setFactor(FactorType newFactor) { factor = newFactor; }
-
-private:
-
-    PositionType position;
-    MomentumType p;
-    MassType mass;
-    ChargeType charge;
-    FactorType factor;
-    GammaType invGamma;
-};
-
 
 
 template<class ParticleArray, class FieldValue>
@@ -114,10 +41,15 @@ int main(int argc, char* argv[])
     utility::printHeader("pusher-baseline benchmark: using baseline 3D Boris particle pusher implementation and SoA particle representation",
         parameters);
 
-    typedef ParticleAoS Particle;
+    // Generate particles randomly,
+    // particular coordinates and other data are not important for this benchmark
+    typedef pica::ParticleBaseline<pica::Three> Particle;
     typedef pica::ParticleArrayAoS<Particle> Particles;
     Particles particles = utility::generateParticles<Particles>(parameters.numParticles);
 
+    // Generate random field values for each particle
+    // to ensure there is no compile-time substitution of fields,
+    // particular values of field are not important for this benchmark
     typedef pica::Vector3<double> FieldValue;
     std::vector<FieldValue> electricFieldValues = utility::generateField<double>(parameters.numParticles);
     std::vector<FieldValue> magneticFieldValues = utility::generateField<double>(parameters.numParticles);
@@ -147,9 +79,13 @@ void runBenchmark(ParticleArray& particles,
     utility::Random random;
     const double dt = random.getUniform() / pica::Constants<double>::c();
 
+    // get arrays out of std::vector to ensure there are no potential
+    // optimization and vectorization issues caused by std::vector
+    const FieldValue* const eValues = &electricFieldValues.front();
+    const FieldValue* const bValues = &magneticFieldValues.front();
+
     for (int i = 0; i < parameters.numIterations; i++)
-        runIteration(particles, &electricFieldValues.front(),
-            &magneticFieldValues.front(), dt);
+        runIteration(particles, eValues, bValues, dt);
 }
 
 
@@ -180,7 +116,7 @@ void process(ParticleArray& particles,
     const FieldValue* magneticFieldValues,
     int beginIdx, int endIdx, double dt)
 {
-    BorisPusherBaseline<typename ParticleArray::Particle> pusher;
+    pica::BorisPusherBaseline<typename ParticleArray::Particle> pusher;
     #pragma simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++)
