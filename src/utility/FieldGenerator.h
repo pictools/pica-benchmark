@@ -26,6 +26,37 @@ std::vector<pica::Vector3<T> > generateField(int size)
 }
 
 
+template<class Grid>
+Grid generateField(typename Grid::PositionType minPosition,
+    typename Grid::PositionType maxPosition,
+    typename Grid::IndexType numInternalCells)
+{
+    typedef typename Grid::PositionType PositionType;
+    typedef typename Grid::IndexType IndexType;
+    PositionType step = (maxPosition - minPosition) / (typename Grid::PositionType(numInternalCells));
+    int numGhostCells = 2;
+    PositionType origin = minPosition - step * static_cast<typename pica::ScalarType<PositionType>::Type>(numGhostCells);
+    IndexType numCells = numInternalCells;
+    for (int d = 0; d < pica::VectorDimensionHelper<IndexType>::dimension; d++)
+        numCells[d] += 2 * numGhostCells;
+    Grid fields(origin, step, numCells);
+
+    Random random;
+    IndexType size = fields.getSize();
+    for (int i = 0; i < size.x; i++)
+    for (int j = 0; j < size.y; j++)
+    for (int k = 0; k < size.z; k++) {
+        fields.ex(i, j, k) = random.getUniform();
+        fields.ey(i, j, k) = random.getUniform();
+        fields.ez(i, j, k) = random.getUniform();
+        fields.bx(i, j, k) = random.getUniform();
+        fields.by(i, j, k) = random.getUniform();
+        fields.bz(i, j, k) = random.getUniform();
+    }
+    return fields;
+}
+
+
 } // namespace utility
 
 
