@@ -14,6 +14,7 @@
 #include "pica/threading/OpenMPHelper.h"
 
 #include <algorithm>
+#include <memory>
 
 
 template<class ParticleArray, class FieldValue>
