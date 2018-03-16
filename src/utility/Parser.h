@@ -9,6 +9,7 @@ namespace utility {
 
 
 PusherParameters readPusherParameters(int argc, char* argv[]);
+FullParameters readFullParameters(int argc, char* argv[]);
 
 
 } // namespace utility
