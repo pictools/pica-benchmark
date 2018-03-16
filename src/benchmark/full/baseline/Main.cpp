@@ -28,6 +28,15 @@ int main(int argc, char* argv[])
     utility::printHeader("full-baseline benchmark: using unordered 3D particle ensemble, CIC form factor and SoA particle representation",
         parameters);
 
+    // Generate particles randomly,
+    // particular coordinates and other data are not important for this benchmark
+    typedef pica::Particle<pica::Three> Particle;
+    typedef pica::ParticleArraySoA<Particle> ParticleArray;
+    typedef typename pica::Ensemble<ParticleArray,
+        pica::EnsembleRepresentation_Unordered>::Type Particles;
+    Particles particles = utility::generateParticles<Particles>(
+        parameters.numCells, parameters.particlesPerCell);
+
     std::auto_ptr<utility::Stopwatch> timer(utility::createStopwatch());
     timer->start();
     runBenchmark(parameters);
