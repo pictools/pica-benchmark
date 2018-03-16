@@ -58,6 +58,22 @@ ParticleArray generateParticles(int numParticles)
     return particles;
 }
 
+template<class Ensemble>
+Ensemble generateParticles(pica::Int3 numCells, int numParticlesPerCell)
+{
+    typename Ensemble::PositionType minPosition(0.0, 0.0, 0.0);
+    typename Ensemble::PositionType maxPosition(1.0, 1.0, 1.0);
+    Ensemble particles(minPosition, maxPosition);
+    Random random;
+    long numParticles = numCells.volume() * numParticlesPerCell;
+    for (int i = 0; i < numParticles; i++) {
+        typename Ensemble::Particle particle;
+        detail::generateParticle(particle, random);
+        particles.add(particle);
+    }
+    return particles;
+}
+
 
 } // namespace utility
 
