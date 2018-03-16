@@ -1,0 +1,58 @@
+#include "utility/FieldGenerator.h"
+#include "utility/Output.h"
+#include "utility/Parameters.h"
+#include "utility/Parser.h"
+#include "utility/ParticleGenerator.h"
+#include "utility/Random.h"
+#include "utility/Timer.h"
+
+#include "pica/math/Dimension.h"
+#include "pica/math/Vectors.h"
+#include "pica/particles/ParticleBaseline.h"
+#include "pica/particles/ParticleArray.h"
+#include "pica/particlePush/BorisPusherBaseline.h"
+#include "pica/threading/OpenMPHelper.h"
+
+#include <algorithm>
+#include <memory>
+
+
+void runBenchmark(const utility::FullParameters& parameters);
+
+void runIteration(double dt);
+
+
+int main(int argc, char* argv[])
+{
+    utility::FullParameters parameters = utility::readFullParameters(argc, argv);
+    utility::printHeader("full-baseline benchmark: using unordered 3D particle ensemble, CIC form factor and SoA particle representation",
+        parameters);
+
+    std::auto_ptr<utility::Stopwatch> timer(utility::createStopwatch());
+    timer->start();
+    runBenchmark(parameters);
+    timer->stop();
+
+    utility::printResult(parameters, timer->getElapsed());
+
+    return 0;
+}
+
+
+// Run the whole benchmark
+void runBenchmark(const utility::FullParameters& parameters)
+{
+    omp_set_num_threads(parameters.numThreads);
+
+    // time step
+    const double dt = 0.1 / pica::Constants<double>::c();
+
+    for (int i = 0; i < parameters.numIterations; i++)
+        runIteration(dt);
+}
+
+
+// Simulate one time step
+void runIteration(double dt)
+{
+}
