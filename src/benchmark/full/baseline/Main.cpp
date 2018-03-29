@@ -6,6 +6,8 @@
 #include "utility/Random.h"
 #include "utility/Timer.h"
 
+#include "pica/fieldInterpolation/FieldInterpolator.h"
+#include "pica/fieldSolver/YeeSolver.h"
 #include "pica/grid/YeeGrid.h"
 #include "pica/math/Dimension.h"
 #include "pica/math/Vectors.h"
@@ -19,9 +21,12 @@
 #include <memory>
 
 
-void runBenchmark(const utility::FullParameters& parameters);
+template<class Ensemble, class Grid>
+void runBenchmark(Ensemble& particles, Grid& fields, 
+    const utility::FullParameters& parameters);
 
-void runIteration(double dt);
+template<class Ensemble, class Grid>
+void runIteration(Ensemble& particles, Grid& fields, double dt);
 
 
 int main(int argc, char* argv[])
@@ -46,7 +51,7 @@ int main(int argc, char* argv[])
 
     std::auto_ptr<utility::Stopwatch> timer(utility::createStopwatch());
     timer->start();
-    runBenchmark(parameters);
+    runBenchmark(particles, fields, parameters);
     timer->stop();
 
     utility::printResult(parameters, timer->getElapsed());
@@ -56,7 +61,9 @@ int main(int argc, char* argv[])
 
 
 // Run the whole benchmark
-void runBenchmark(const utility::FullParameters& parameters)
+template<class Ensemble, class Grid>
+void runBenchmark(Ensemble& particles, Grid& fields,
+    const utility::FullParameters& parameters)
 {
     omp_set_num_threads(parameters.numThreads);
 
@@ -64,11 +71,55 @@ void runBenchmark(const utility::FullParameters& parameters)
     const double dt = 0.1 / pica::Constants<double>::c();
 
     for (int i = 0; i < parameters.numIterations; i++)
-        runIteration(dt);
+        runIteration(particles, fields, dt);
 }
 
 
 // Simulate one time step
-void runIteration(double dt)
+template<class Ensemble, class Grid>
+void runIteration(Ensemble& particles, Grid& fields, double dt)
 {
+    updateParticles(particles, fields, dt);
+    updateField(fields, dt);
+}
+
+template<class Ensemble, class Grid>
+void updateParticles(Ensemble& particles, const Grid& fields, double dt)
+{
+    // Each thread processes some particles
+    const int numParticles = particles.size();
+    const int numThreads = pica::getNumThreads();
+    const int particlesPerThread = (numParticles + numThreads - 1) / numThreads;
+    #pragma omp parallel for
+    for (int idx = 0; idx < numThreads; idx++) {
+        const int beginIdx = idx * particlesPerThread;
+        const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
+        process(particles, fields, beginIdx, endIdx, dt);
+    }
+}
+
+template<class Ensemble, class Grid>
+void process(Ensemble& particles, const Grid& fields,
+    int beginIdx, int endIdx, double dt)
+{
+    typedef typename Ensemble::Particle Particle;
+    pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
+    pica::BorisPusherBaseline<Particle> pusher;
+    pica::FieldInterpolatorCIC<Grid> fieldInterpolator(fields);
+    #pragma simd
+    #pragma forceinline
+    for (int i = beginIdx; i < endIdx; i++) {
+        pica::Vector3<double> e, b;
+        fieldInterpolator.get(particleArray[i].getPosition(), e, b);
+        pusher.push(particleArray[i], e, b, dt);
+    }
+}
+
+template<class Grid>
+void updateField(Grid& fields, double dt)
+{
+    pica::YeeSolver solver;
+    solver.updateB(fields, dt / 2.0);
+    solver.updateE(fields, dt);
+    solver.updateB(fields, dt / 2.0);
 }
