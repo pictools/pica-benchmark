@@ -6,6 +6,7 @@
 #include "utility/Random.h"
 #include "utility/Timer.h"
 
+#include "pica/currentDeposition/CurrentDepositor.h"
 #include "pica/fieldInterpolation/FieldInterpolator.h"
 #include "pica/fieldSolver/YeeSolver.h"
 #include "pica/grid/YeeGrid.h"
@@ -66,25 +67,29 @@ void runBenchmark(Ensemble& particles, Grid& fields,
     const utility::FullParameters& parameters)
 {
     omp_set_num_threads(parameters.numThreads);
+    std::vector<Grid> threadFields(parameters.numThreads, fields);
 
     // time step
     const double dt = 0.1 / pica::Constants<double>::c();
 
     for (int i = 0; i < parameters.numIterations; i++)
-        runIteration(particles, fields, dt);
+        runIteration(particles, fields, threadFields, dt);
 }
 
 
 // Simulate one time step
 template<class Ensemble, class Grid>
-void runIteration(Ensemble& particles, Grid& fields, double dt)
+void runIteration(Ensemble& particles, Grid& fields,
+    std::vector<Grid>& threadFields, double dt)
 {
-    updateParticles(particles, fields, dt);
-    updateField(fields, dt);
+    updateParticles(particles, fields, threadFields, dt);
+    finalizeCurrents(fields, threadFields);
+    updateFields(fields, dt);
 }
 
 template<class Ensemble, class Grid>
-void updateParticles(Ensemble& particles, const Grid& fields, double dt)
+void updateParticles(Ensemble& particles, const Grid& fields,
+    std::vector<Grid>& threadFields, double dt)
 {
     // Each thread processes some particles
     const int numParticles = particles.size();
@@ -94,16 +99,17 @@ void updateParticles(Ensemble& particles, const Grid& fields, double dt)
     for (int idx = 0; idx < numThreads; idx++) {
         const int beginIdx = idx * particlesPerThread;
         const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
-        process(particles, fields, beginIdx, endIdx, dt);
+        process(particles, fields, threadFields, beginIdx, endIdx, dt);
     }
 }
 
 template<class Ensemble, class Grid>
-void process(Ensemble& particles, const Grid& fields,
+void process(Ensemble& particles, const Grid& fields, std::vector<Grid>& threadFields,
     int beginIdx, int endIdx, double dt)
 {
     push(particles, fields, beginIdx, endIdx, dt);
     applyBoundaryConditions(particles, beginIdx, endIdx);
+    depositCurrents(particles, threadFields, beginIdx, endIdx, dt);
 }
 
 template<class Ensemble, class Grid>
@@ -149,8 +155,62 @@ void applyBoundaryConditions(Ensemble& particles, int beginIdx, int endIdx)
     }
 }
 
+template<class Ensemble, class Grid>
+void depositCurrents(Ensemble& particles, std::vector<Grid>& threadFields,
+    int beginIdx, int endIdx, double dt)
+{
+    Grid& fields = threadFields[omp_get_thread_num()];
+    typedef typename Ensemble::Particle Particle;
+    pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
+    const double halfDt = 0.5 * dt;
+    pica::CurrentDepositorCIC<Grid> currentDepositor(fields);
+
+    // Zeroise currents
+    for (int i = 0; i < fields.getSize().x; i++)
+    for (int j = 0; j < fields.getSize().y; j++)
+    for (int k = 0; k < fields.getSize().z; k++) {
+        fields.jx(i, j, k) = 0.0;
+        fields.jy(i, j, k) = 0.0;
+        fields.jz(i, j, k) = 0.0;
+    }
+
+    for (int i = beginIdx; i < endIdx; i++) {
+        pica::Vector3<double> position = particleArray[i].getPosition();
+        for (int d = 0; d < 3; d++)
+            position[d] -= particleArray[i].getVelocity()[d] * halfDt;
+        pica::Vector3<double> current = particleArray[i].getVelocity() *
+            particleArray[i].getCharge() * (double)particleArray[i].getFactor();
+        currentDepositor.deposit(position, current);
+    }
+}
+
 template<class Grid>
-void updateField(Grid& fields, double dt)
+void finalizeCurrents(Grid& fields, std::vector<Grid>& threadFields)
+{
+    double normalization = 1.0 / fields.getStep().volume();
+    const int sizeX = fields.getSize().x;
+    const int sizeY = fields.getSize().y;
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < sizeX; i++)
+    for (int j = 0; j < sizeY; j++)
+    for (int k = 0; k < fields.getSize().z; k++) {
+        fields.jx(i, j, k) = 0.0;
+        fields.jy(i, j, k) = 0.0;
+        fields.jz(i, j, k) = 0.0;
+        for (int threadIdx = 0; threadIdx < threadFields.size(); threadIdx++) {
+            const Grid& currentGrid = threadFields[threadIdx];
+            fields.jx(i, j, k) += currentGrid.jx(i, j, k);
+            fields.jy(i, j, k) += currentGrid.jy(i, j, k);
+            fields.jz(i, j, k) += currentGrid.jz(i, j, k);
+        }
+        fields.jx(i, j, k) *= normalization;
+        fields.jy(i, j, k) *= normalization;
+        fields.jz(i, j, k) *= normalization;
+    }
+}
+
+template<class Grid>
+void updateFields(Grid& fields, double dt)
 {
     pica::YeeSolver solver;
     solver.updateB(fields, dt / 2.0);
