@@ -102,6 +102,14 @@ template<class Ensemble, class Grid>
 void process(Ensemble& particles, const Grid& fields,
     int beginIdx, int endIdx, double dt)
 {
+    push(particles, fields, beginIdx, endIdx, dt);
+    applyBoundaryConditions(particles, beginIdx, endIdx);
+}
+
+template<class Ensemble, class Grid>
+void push(Ensemble& particles, const Grid& fields,
+    int beginIdx, int endIdx, double dt)
+{
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
     pica::BorisPusherBaseline<Particle> pusher;
@@ -112,6 +120,32 @@ void process(Ensemble& particles, const Grid& fields,
         pica::Vector3<double> e, b;
         fieldInterpolator.get(particleArray[i].getPosition(), e, b);
         pusher.push(particleArray[i], e, b, dt);
+    }
+}
+
+// Reflective boundary conditions
+template<class Ensemble>
+void applyBoundaryConditions(Ensemble& particles, int beginIdx, int endIdx)
+{
+    typedef typename Ensemble::Particle Particle;
+    pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
+    pica::Vector3<double> minPosition = particles.getMinPosition();
+    pica::Vector3<double> maxPosition = particles.getMaxPosition();
+    for (int i = beginIdx; i < endIdx; i++) {
+        pica::Vector3<double> position = particleArray[i].getPosition();
+        pica::Vector3<double> momentum = particleArray[i].getMomentum();
+        for (int d = 0; d < 3; d++)
+            if (position[d] < minPosition[d]) {
+                position[d] = 2.0 * minPosition[d] - position[d];
+                momentum[d] = -momentum[d];
+            }
+            else
+                if (position[d] > maxPosition[d]) {
+                    position[d] = 2.0 * maxPosition[d] - position[d];
+                    momentum[d] = -momentum[d];
+                }
+        particleArray[i].setPosition(position);
+        particleArray[i].setMomentum(momentum);
     }
 }
 
