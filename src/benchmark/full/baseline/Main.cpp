@@ -21,14 +21,39 @@
 #include <algorithm>
 #include <memory>
 
+template<class Ensemble, class Grid>
+void runBenchmark(Ensemble& particles, Grid& fields, const utility::FullParameters& parameters);
 
 template<class Ensemble, class Grid>
-void runBenchmark(Ensemble& particles, Grid& fields, 
-    const utility::FullParameters& parameters);
+void runIteration(Ensemble& particles, Grid& fields, std::vector<Grid>& threadFields, double dt);
 
 template<class Ensemble, class Grid>
-void runIteration(Ensemble& particles, Grid& fields, double dt);
+void updateParticles(Ensemble& particles, const Grid& fields, std::vector<Grid>& threadFields, double dt);
 
+template<class Ensemble, class Grid>
+void updateParticles(Ensemble& particles, const Grid& fields,
+    std::vector<Grid>& threadFields, double dt);
+
+template<class Ensemble, class Grid>
+void process(Ensemble& particles, const Grid& fields, std::vector<Grid>& threadFields,
+    int beginIdx, int endIdx, double dt);
+
+template<class Ensemble>
+void applyBoundaryConditions(Ensemble& particles, int beginIdx, int endIdx);
+
+template<class Ensemble, class Grid>
+void push(Ensemble& particles, const Grid& fields,
+    int beginIdx, int endIdx, double dt);
+
+template<class Grid>
+void finalizeCurrents(Grid& fields, std::vector<Grid>& threadFields);
+
+template<class Ensemble, class Grid>
+void depositCurrents(Ensemble& particles, std::vector<Grid>& threadFields,
+    int beginIdx, int endIdx, double dt);
+
+template<class Grid>
+void updateFields(Grid& fields, double dt);
 
 int main(int argc, char* argv[])
 {
@@ -117,7 +142,7 @@ void push(Ensemble& particles, const Grid& fields,
     int beginIdx, int endIdx, double dt)
 {
     typedef typename Ensemble::Particle Particle;
-    pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
+    pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles();
     pica::BorisPusherBaseline<Particle> pusher;
     pica::FieldInterpolatorCIC<Grid> fieldInterpolator(fields);
     #pragma simd
@@ -134,7 +159,7 @@ template<class Ensemble>
 void applyBoundaryConditions(Ensemble& particles, int beginIdx, int endIdx)
 {
     typedef typename Ensemble::Particle Particle;
-    pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
+    pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles();
     pica::Vector3<double> minPosition = particles.getMinPosition();
     pica::Vector3<double> maxPosition = particles.getMaxPosition();
     for (int i = beginIdx; i < endIdx; i++) {
@@ -161,7 +186,7 @@ void depositCurrents(Ensemble& particles, std::vector<Grid>& threadFields,
 {
     Grid& fields = threadFields[omp_get_thread_num()];
     typedef typename Ensemble::Particle Particle;
-    pica::ParticleArraySoA<Particle> particleArray = particles.getParticles();
+    pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles();
     const double halfDt = 0.5 * dt;
     pica::CurrentDepositorCIC<Grid> currentDepositor(fields);
 

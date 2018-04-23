@@ -50,7 +50,7 @@ ParticleArray generateParticles(int numParticles)
 {
     Random random;
     ParticleArray particles;
-    for (int i = 0; i < particles.size(); i++) {
+    for (int i = 0; i < numParticles; i++) {
         typename ParticleArray::Particle particle;
         detail::generateParticle(particle, random);
         particles.pushBack(particle);

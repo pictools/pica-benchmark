@@ -19,7 +19,7 @@ void printHeader(const string& message, const FullParameters& parameters)
         cout << message << "\n";
     cout << "Parameters:\n";
     cout << "    Grid size: ";
-    for (int d = 0; d < 3; d++)
+    for (int d = 0; d < 2; d++)
         cout << parameters.numCells[d] << "x";
     cout << parameters.numCells[2] << "\n";
     cout << "    Number of time iterations: " << parameters.numIterations << "\n";
