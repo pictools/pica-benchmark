@@ -17,8 +17,8 @@ namespace utility {
 PusherParameters readPusherParameters(int argc, char* argv[])
 {
     cmdline::parser parser;
-    parser.add<int>("nparticles", 0, "number of particles", false, 10000);
-    parser.add<int>("niterations", 0, "number of iterations", false, 100);
+    parser.add<int>("nparticles", 0, "number of particles", false, 3200000);
+    parser.add<int>("niterations", 0, "number of iterations", false, 1000);
     if (pica::useOpenMP())
         parser.add<int>("nthreads", 0, "number of OpenMP threads, default value is based on system settings",
             false, pica::getNumThreads());
@@ -41,7 +41,7 @@ FullParameters readFullParameters(int argc, char* argv[])
     parser.add<int>("ncellsz", 0, "number of grid cells in z, only used for dimension = 3", false, 40);
     parser.add<int>("nppc", 0, "number of particles per cell", false, 50);
     parser.add<double>("temperature", 0, "initial temperature", false, 0.0);
-    parser.add<int>("niterations", 0, "number of time iterations", false, 100);
+    parser.add<int>("niterations", 0, "number of time iterations", false, 1000);
     parser.add<string>("layout", 0, "layout of particles in arrays: " +
         toString(ParticleRepresentation_SoA) + " or " + toString(ParticleRepresentation_AoS), false,
         toString(ParticleRepresentation_SoA), cmdline::oneof<string>(toString(ParticleRepresentation_SoA),
