@@ -68,7 +68,7 @@ void printResult(const FullParameters& parameters, double runTimeSeconds)
 {
     cout << "Total run time: " << runTimeSeconds << " sec";
     long numParticles = parameters.numCells.volume() * parameters.particlesPerCell;
-    long numParticleUpdates = numParticles * parameters.numIterations;
+    long long numParticleUpdates = numParticles * parameters.numIterations;
     double nsPerParticleUpdate = runTimeSeconds * 1e9 / numParticleUpdates;
     cout << ", " << nsPerParticleUpdate << " ns per particle update";
     cout << endl;
@@ -77,7 +77,7 @@ void printResult(const FullParameters& parameters, double runTimeSeconds)
 void printResult(const PusherParameters& parameters, double runTimeSeconds)
 {
     cout << "Total run time: " << runTimeSeconds << " sec";
-    long numParticleUpdates = parameters.numParticles * parameters.numIterations;
+    long long numParticleUpdates = parameters.numParticles * parameters.numIterations;
     double nsPerParticleUpdate = runTimeSeconds * 1e9 / numParticleUpdates;
     cout << ", " << nsPerParticleUpdate << " ns per particle update";
     cout << endl;
