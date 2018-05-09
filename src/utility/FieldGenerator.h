@@ -13,15 +13,13 @@ namespace utility {
 
 
 template<class T>
-std::vector<pica::Vector3<T> > generateField(int size)
+pica::Vector3<T> generateField()
 {
     Random random;
-    std::vector<pica::Vector3<T> > result(size);
-    for (int i = 0; i < result.size(); i++) {
-        result[i].x = random.getUniform();
-        result[i].y = random.getUniform();
-        result[i].z = random.getUniform();
-    }
+    pica::Vector3<T> result;
+    result.x = random.getUniform();
+    result.y = random.getUniform();
+    result.z = random.getUniform();
     return result;
 }
 

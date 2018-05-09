@@ -19,27 +19,27 @@
 
 template<class ParticleArray, class FieldValue>
 void runBenchmark(ParticleArray& particles,
-    const std::vector<FieldValue>& electricFieldValues,
-    const std::vector<FieldValue>& magneticFieldValues,
+    const FieldValue& electricFieldValue,
+    const FieldValue& magneticFieldValue,
     const utility::PusherParameters& parameters);
 
 template<class ParticleArray, class FieldValue>
 void runIteration(ParticleArray& particles,
-    const FieldValue* electricFieldValues,
-    const FieldValue* magneticFieldValues,
+    const FieldValue& electricFieldValue,
+    const FieldValue& magneticFieldValue,
     double dt);
 
 template<class ParticleArray, class FieldValue>
 void process(ParticleArray& particles,
-    const FieldValue* electricFieldValues,
-    const FieldValue* magneticFieldValues,
+    const FieldValue& electricFieldValue,
+    const FieldValue& magneticFieldValue,
     int beginIdx, int endIdx, double dt);
 
 
 int main(int argc, char* argv[])
 {
     utility::PusherParameters parameters = utility::readPusherParameters(argc, argv);
-    utility::printHeader("pusher-baseline benchmark: using baseline 3D Boris particle pusher implementation and SoA particle representation",
+    utility::printHeader("pusher-baseline benchmark: using baseline 3D Boris particle pusher implementation and AoS particle representation",
         parameters);
 
     // Generate particles randomly,
@@ -52,8 +52,8 @@ int main(int argc, char* argv[])
     // to ensure there is no compile-time substitution of fields,
     // particular values of field are not important for this benchmark
     typedef pica::Vector3<double> FieldValue;
-    std::vector<FieldValue> electricFieldValues = utility::generateField<double>(parameters.numParticles);
-    std::vector<FieldValue> magneticFieldValues = utility::generateField<double>(parameters.numParticles);
+    FieldValue electricFieldValues = utility::generateField<double>();
+    FieldValue magneticFieldValues = utility::generateField<double>();
 
     std::auto_ptr<utility::Stopwatch> timer(utility::createStopwatch());
     timer->start();
@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
 // Run the whole benchmark
 template<class ParticleArray, class FieldValue>
 void runBenchmark(ParticleArray& particles,
-    const std::vector<FieldValue>& electricFieldValues,
-    const std::vector<FieldValue>& magneticFieldValues,
+    const FieldValue& electricFieldValue,
+    const FieldValue& magneticFieldValue,
     const utility::PusherParameters& parameters)
 {
     omp_set_num_threads(parameters.numThreads);
@@ -80,21 +80,16 @@ void runBenchmark(ParticleArray& particles,
     utility::Random random;
     const double dt = random.getUniform() / pica::Constants<double>::c();
 
-    // get arrays out of std::vector to ensure there are no potential
-    // optimization and vectorization issues caused by std::vector
-    const FieldValue* const eValues = &electricFieldValues.front();
-    const FieldValue* const bValues = &magneticFieldValues.front();
-
     for (int i = 0; i < parameters.numIterations; i++)
-        runIteration(particles, eValues, bValues, dt);
+        runIteration(particles, electricFieldValue, magneticFieldValue, dt);
 }
 
 
 // Push all particles by one time step
 template<class ParticleArray, class FieldValue>
 void runIteration(ParticleArray& particles,
-    const FieldValue* electricFieldValues,
-    const FieldValue* magneticFieldValues,
+    const FieldValue& electricFieldValue,
+    const FieldValue& magneticFieldValue,
     double dt)
 {
     // Each thread processes some particles
@@ -105,7 +100,7 @@ void runIteration(ParticleArray& particles,
     for (int idx = 0; idx < numThreads; idx++) {
         const int beginIdx = idx * particlesPerThread;
         const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
-        process(particles, electricFieldValues, magneticFieldValues, beginIdx, endIdx, dt);
+        process(particles, electricFieldValue, magneticFieldValue, beginIdx, endIdx, dt);
     }
 }
 
@@ -113,13 +108,13 @@ void runIteration(ParticleArray& particles,
 // Process particles with indexes in [beginIdx, endIdx) range
 template<class ParticleArray, class FieldValue>
 void process(ParticleArray& particles,
-    const FieldValue* electricFieldValues,
-    const FieldValue* magneticFieldValues,
+    const FieldValue& electricFieldValue,
+    const FieldValue& magneticFieldValue,
     int beginIdx, int endIdx, double dt)
 {
     pica::BorisPusherBaseline<typename ParticleArray::Particle> pusher;
     #pragma simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++)
-        pusher.push(particles[i], electricFieldValues[i], magneticFieldValues[i], dt);
+        pusher.push(particles[i], electricFieldValue, magneticFieldValue, dt);
 }
