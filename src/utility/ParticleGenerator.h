@@ -13,8 +13,8 @@ namespace utility {
 
 namespace detail {
 
-template<class ParticleRef>
-void generateParticle(ParticleRef particle, Random& random)
+template<class Particle>
+void generateParticle(Particle& particle, Random& random)
 {
     particle.setMass(pica::constants::electronMass);
     particle.setCharge(pica::constants::electronCharge);
