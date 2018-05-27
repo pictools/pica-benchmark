@@ -113,5 +113,5 @@ void process(ParticleArray& particles,
     #pragma simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++)
-        pusher.push(particles[i], electricFieldValue, magneticFieldValue, dt);
+        pusher.push(&particles[i], electricFieldValue, magneticFieldValue, dt);
 }

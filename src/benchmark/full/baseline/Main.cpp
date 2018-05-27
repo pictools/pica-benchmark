@@ -150,7 +150,7 @@ void push(Ensemble& particles, const Grid& fields,
     for (int i = beginIdx; i < endIdx; i++) {
         pica::Vector3<double> e, b;
         fieldInterpolator.get(particleArray[i].getPosition(), e, b);
-        pusher.push(particleArray[i], e, b, dt);
+        pusher.push(&particleArray[i], e, b, dt);
     }
 }
 
