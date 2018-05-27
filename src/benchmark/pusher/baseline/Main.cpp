@@ -113,7 +113,7 @@ void process(ParticleArray& particles,
     int beginIdx, int endIdx, double dt)
 {
     pica::BorisPusherBaseline<typename ParticleArray::Particle> pusher;
-    #pragma simd
+    #pragma omp simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++)
         pusher.push(&particles[i], electricFieldValue, magneticFieldValue, dt);
