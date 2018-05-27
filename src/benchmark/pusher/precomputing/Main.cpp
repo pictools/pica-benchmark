@@ -39,7 +39,7 @@ void process(ParticleArray& particles,
 int main(int argc, char* argv[])
 {
     utility::PusherParameters parameters = utility::readPusherParameters(argc, argv);
-    utility::printHeader("pusher-precomputing benchmark: using optimized 3D Boris particle pusher implementation with precomputing of inverse gamma and SoA particle representation",
+    utility::printHeader("pusher-precomputing benchmark: using optimized 3D Boris particle pusher implementation with precomputing of inverse gamma and AoS particle representation",
         parameters);
 
     // Generate particles randomly,
