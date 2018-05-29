@@ -13,6 +13,7 @@ namespace utility {
 // Parameters for particle pusher benchmarks
 struct PusherParameters {
     int numParticles;
+    int numParticleTypes;
     int numIterations;
     int numThreads;
 };
@@ -22,6 +23,7 @@ struct FullParameters {
     pica::Vector3<int> numCells;
     int numIterations;
     int particlesPerCell;
+    int numParticleTypes;
     double temperature;
     pica::ParticleRepresentation particleRepresentation;
     pica::EnsembleRepresentation ensembleRepresentation;

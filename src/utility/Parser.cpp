@@ -10,21 +10,28 @@
 using namespace pica;
 using namespace std;
 
+namespace pica {
+namespace ParticleTypes {
+    std::vector<ParticleType> typesVector;
+    const ParticleType* types = nullptr;
+    int numTypes = 0;
+} }
 
 namespace utility {
-
 
 PusherParameters readPusherParameters(int argc, char* argv[])
 {
     cmdline::parser parser;
     parser.add<int>("nparticles", 0, "number of particles", false, 3200000);
     parser.add<int>("niterations", 0, "number of iterations", false, 1000);
+    parser.add<int>("nparticletypes", 0, "number of particle types", false, 2);
     if (pica::useOpenMP())
         parser.add<int>("nthreads", 0, "number of OpenMP threads, default value is based on system settings",
             false, pica::getNumThreads());
     parser.parse(argc, argv);
     PusherParameters parameters;
     parameters.numParticles = parser.get<int>("nparticles");
+    parameters.numParticleTypes = parser.get<int>("nparticletypes");
     parameters.numIterations = parser.get<int>("niterations");
     if (pica::useOpenMP())
         parameters.numThreads = parser.get<int>("nthreads");
@@ -40,6 +47,7 @@ FullParameters readFullParameters(int argc, char* argv[])
     parser.add<int>("ncellsy", 0, "number of grid cells in y, only used for dimension >= 2", false, 40);
     parser.add<int>("ncellsz", 0, "number of grid cells in z, only used for dimension = 3", false, 40);
     parser.add<int>("nppc", 0, "number of particles per cell", false, 50);
+    parser.add<int>("nparticletypes", 0, "number of particle types", false, 2);
     parser.add<double>("temperature", 0, "initial temperature", false, 0.0);
     parser.add<int>("niterations", 0, "number of time iterations", false, 1000);
     parser.add<string>("layout", 0, "layout of particles in arrays: " +
@@ -71,6 +79,7 @@ FullParameters readFullParameters(int argc, char* argv[])
     parameters.numCells.y = parser.get<int>("ncellsy");
     parameters.numCells.z = parser.get<int>("ncellsz");
     parameters.particlesPerCell = parser.get<int>("nppc");
+    parameters.numParticleTypes = parser.get<int>("nparticletypes");
     parameters.temperature = parser.get<double>("temperature");
     parameters.numIterations = parser.get<int>("niterations");
     string representationParticles = parser.get<string>("layout");
@@ -101,7 +110,5 @@ FullParameters readFullParameters(int argc, char* argv[])
         parameters.numThreads = 1;
     return parameters;
 }
-
-
 
 } // namespace utility

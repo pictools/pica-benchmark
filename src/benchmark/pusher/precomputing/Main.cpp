@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
     // particular coordinates and other data are not important for this benchmark
     typedef pica::Particle<pica::Three> Particle;
     typedef pica::ParticleArrayAoS<Particle> Particles;
-    Particles particles = utility::generateParticles<Particles>(parameters.numParticles);
+    Particles particles = utility::generateParticles<Particles>(parameters.numParticles, parameters.numParticleTypes);
 
     // Generate random field values for each particle
     // to ensure there is no compile-time substitution of fields,

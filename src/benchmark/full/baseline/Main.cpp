@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     typedef typename pica::Ensemble<ParticleArray,
         pica::EnsembleRepresentation_Unordered>::Type Particles;
     Particles particles = utility::generateParticles<Particles>(
-        parameters.numCells, parameters.particlesPerCell);
+        parameters.numCells, parameters.particlesPerCell, parameters.numParticleTypes);
 
     // Generate fields
     typedef pica::YeeGrid<pica::Three> Grid;
@@ -95,7 +95,7 @@ void runBenchmark(Ensemble& particles, Grid& fields,
     std::vector<Grid> threadFields(parameters.numThreads, fields);
 
     // time step
-    const double dt = 0.1 / pica::Constants<double>::c();
+    const double dt = 1.0 / (8 * parameters.numCells.x * pica::Constants<double>::c());
 
     for (int i = 0; i < parameters.numIterations; i++)
         runIteration(particles, fields, threadFields, dt);
