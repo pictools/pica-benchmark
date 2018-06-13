@@ -15,7 +15,7 @@
 #include "pica/particles/Ensemble.h"
 #include "pica/particles/Particle.h"
 #include "pica/particles/ParticleArray.h"
-#include "pica/particlePush/BorisPusherBaseline.h"
+#include "pica/particlePush/BorisPusher.h"
 #include "pica/threading/OpenMPHelper.h"
 
 #include <algorithm>
@@ -146,7 +146,7 @@ void push(Ensemble& particles, const Grid& fields,
 {
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles();
-    pica::BorisPusherBaseline<Particle> pusher;
+    pica::BorisPusher<Particle> pusher;
     pica::FieldInterpolatorCIC<Grid> fieldInterpolator(fields);
     #pragma omp simd
     #pragma forceinline
