@@ -28,9 +28,6 @@ template<class Ensemble, class Grid>
 void runIteration(Ensemble& particles, Grid& fields, std::vector<Grid>& threadFields, double dt);
 
 template<class Ensemble, class Grid>
-void updateParticles(Ensemble& particles, const Grid& fields, std::vector<Grid>& threadFields, double dt);
-
-template<class Ensemble, class Grid>
 void updateParticles(Ensemble& particles, const Grid& fields,
     std::vector<Grid>& threadFields, double dt);
 
