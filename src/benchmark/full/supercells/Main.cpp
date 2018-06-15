@@ -60,8 +60,8 @@ int main(int argc, char* argv[])
     typedef typename pica::Ensemble<ParticleArray,
         pica::EnsembleRepresentation_Supercells>::Type Particles;
     Particles particles = utility::generateParticles<Particles>(
-        parameters.numCells, parameters.numCellsPerSupercell,
-        parameters.particlesPerCell, parameters.numParticleTypes);
+        parameters.numCells, parameters.particlesPerCell, parameters.numCells,
+        parameters.numCellsPerSupercell, parameters.numParticleTypes);
 
     // Generate fields
     typedef pica::YeeGrid<pica::Three> Grid;
@@ -197,8 +197,7 @@ void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingP
             migratingParticles.add(particleArray[i]);
             typename Ensemble::ParticleRef lastParticle = particleArray.back();
             particleArray[i].setPosition(lastParticle.getPosition());
-            particleArray[i].setMass(lastParticle.getMass());
-            particleArray[i].setCharge(lastParticle.getCharge());
+            particleArray[i].setType(lastParticle.getType());
             particleArray[i].setFactor(lastParticle.getFactor());
             particleArray.popBack();
             i--;

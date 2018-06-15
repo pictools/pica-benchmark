@@ -4,20 +4,31 @@
 
 #include "pica/math/Constants.h"
 #include "pica/math/Vectors.h"
-#include "pica/particles/ParticleTraits.h"
+#include "pica/particles/ParticleBaseline.h"
 
 #include <cmath>
 
-
 namespace utility {
 
-namespace detail {
+namespace detail
+{
+void initParticleTypes(Random& random, int numParticleTypes)
+{
+    pica::ParticleTypes::typesVector.resize(numParticleTypes);
+    for (int i = 0; i < numParticleTypes; i++)
+    {
+        pica::ParticleTypes::typesVector[i].mass = random.getUniform();
+        pica::ParticleTypes::typesVector[i].charge = random.getUniform();
+    }
+
+    pica::ParticleTypes::types = &pica::ParticleTypes::typesVector[0];
+    pica::ParticleTypes::numTypes = numParticleTypes;
+}
 
 template<class Particle>
-void generateParticle(Particle& particle, Random& random)
+void generateParticle(Particle& particle, Random& random, int numParticleTypes)
 {
-    particle.setMass(pica::constants::electronMass);
-    particle.setCharge(pica::constants::electronCharge);
+    particle.setType(rand() % numParticleTypes);
     particle.setFactor(1.0);
     typedef pica::Vector3<double> PositionType; /// todo - remove hardcoded type
     PositionType position;
@@ -41,39 +52,55 @@ void generateParticle(Particle& particle, Random& random)
     particle.setMomentum(momentum);
 }
 
-
-} // namespace utility::detail
-
+} // namespace detail
 
 template<class ParticleArray>
-ParticleArray generateParticles(int numParticles)
+ParticleArray generateParticles(int numParticles, int numParticleTypes)
 {
     Random random;
     ParticleArray particles;
+    detail::initParticleTypes(random, numParticleTypes);
     for (int i = 0; i < numParticles; i++) {
         typename ParticleArray::Particle particle;
-        detail::generateParticle(particle, random);
+        detail::generateParticle(particle, random, numParticleTypes);
         particles.pushBack(particle);
     }
     return particles;
 }
 
 template<class Ensemble>
-Ensemble generateParticles(pica::Int3 numCells, int numParticlesPerCell)
+Ensemble generateParticles(pica::Int3 numCells, int numParticlesPerCell, int numParticleTypes)
 {
     typename Ensemble::PositionType minPosition(0.0, 0.0, 0.0);
     typename Ensemble::PositionType maxPosition(1.0, 1.0, 1.0);
     Ensemble particles(minPosition, maxPosition);
     Random random;
     long numParticles = numCells.volume() * numParticlesPerCell;
+    detail::initParticleTypes(random, numParticleTypes);
     for (int i = 0; i < numParticles; i++) {
         typename Ensemble::Particle particle;
-        detail::generateParticle(particle, random);
+        detail::generateParticle(particle, random, numParticleTypes);
         particles.add(particle);
     }
     return particles;
 }
 
+template<class Ensemble>
+Ensemble generateParticles(pica::Int3 numCells, int numParticlesPerCell, pica::Vector3<int> numSupercells, pica::Vector3<int> numSupercellsPerCell, int numParticleTypes)
+{
+    typename Ensemble::PositionType minPosition(0.0, 0.0, 0.0);
+    typename Ensemble::PositionType maxPosition(1.0, 1.0, 1.0);
+    Ensemble particles(minPosition, maxPosition, numSupercells, numSupercellsPerCell);
+    Random random;
+    long numParticles = numCells.volume() * numParticlesPerCell;
+    detail::initParticleTypes(random, numParticleTypes);
+    for (int i = 0; i < numParticles; i++) {
+        typename Ensemble::Particle particle;
+        detail::generateParticle(particle, random, numParticleTypes);
+        particles.add(particle);
+    }
+    return particles;
+}
 
 } // namespace utility
 
