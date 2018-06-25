@@ -95,7 +95,8 @@ void runBenchmark(Ensemble& particles, Grid& fields,
     const double dt = 1.0 / (8 * parameters.numCells.x * pica::Constants<double>::c());
 
     for (int i = 0; i < parameters.numIterations; i++) {
-        if (i % parameters.sortingPeriod)
+        bool isSortingIteration = (i % parameters.sortingPeriod == 0);
+        if (isSortingIteration)
             particles.reorder();
         runIteration(particles, fields, threadFields, dt);
     }
