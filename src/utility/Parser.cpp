@@ -13,7 +13,7 @@ using namespace std;
 namespace pica {
 namespace ParticleTypes {
     std::vector<ParticleType> typesVector;
-    const ParticleType* types = nullptr;
+    const ParticleType* types = NULL;
     int numTypes = 0;
 } }
 
