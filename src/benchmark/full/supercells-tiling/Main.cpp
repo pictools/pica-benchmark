@@ -60,8 +60,8 @@ int main(int argc, char* argv[])
     typedef typename pica::Ensemble<ParticleArray,
         pica::EnsembleRepresentation_Supercells>::Type Particles;
     Particles particles = utility::generateParticles<Particles>(
-        parameters.numCells, parameters.numCellsPerSupercell,
-        parameters.particlesPerCell, parameters.numParticleTypes);
+        parameters.numCells, parameters.particlesPerCell, parameters.numCells,
+        parameters.numCellsPerSupercell, parameters.numParticleTypes);
 
     // Generate fields
     typedef pica::YeeGrid<pica::Three> Grid;
@@ -114,27 +114,27 @@ void updateParticles(Ensemble& particles, Grid& fields, Ensemble& migratingParti
         if (particles.getNumCellsPerSupercell()[d] == 1)
             superCellStep[d] = 4;
     for (int startI = 0; startI < superCellStep.x; startI++)
-    for (int startJ = 0; startJ < superCellStep.y; startJ++)
-    for (int startK = 0; startK < superCellStep.z; startK++) {
-        #pragma omp parallel for collapse(3)
-        for (int i = startI; i < numSupercells.x; i += superCellStep.x)
-        for (int j = startJ; j < numSupercells.y; j += superCellStep.y)
-        for (int k = startK; k < numSupercells.z; k += superCellStep.z)
-            process(particles, fields, migratingParticles, pica::Int3(i, j, k), dt);
-    }
+        for (int startJ = 0; startJ < superCellStep.y; startJ++)
+            for (int startK = 0; startK < superCellStep.z; startK++) {
+#pragma omp parallel for collapse(3)
+                for (int i = startI; i < numSupercells.x; i += superCellStep.x)
+                    for (int j = startJ; j < numSupercells.y; j += superCellStep.y)
+                        for (int k = startK; k < numSupercells.z; k += superCellStep.z)
+                            process(particles, fields, migratingParticles, pica::Int3(i, j, k), dt);
+            }
 
     // Finalize migration
-    #pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
     for (int i = 0; i < numSupercells.x; i++)
-    for (int j = 0; j < numSupercells.y; j++)
-    for (int k = 0; k < numSupercells.z; k++) {
-        pica::ParticleArraySoA<pica::Particle<pica::Three> >& migrating = migratingParticles.getParticles(pica::Int3(i, j, k));
-        for (int idx = 0; idx < migrating.size(); idx++)
-            particles.add(migrating[idx]);
-        int size = migrating.size();
-        for (int idx = 0; idx < size; idx++)
-            migrating.popBack();
-    }
+        for (int j = 0; j < numSupercells.y; j++)
+            for (int k = 0; k < numSupercells.z; k++) {
+                pica::ParticleArraySoA<pica::Particle<pica::Three> >& migrating = migratingParticles.getParticles(pica::Int3(i, j, k));
+                for (int idx = 0; idx < migrating.size(); idx++)
+                    particles.add(migrating[idx]);
+                int size = migrating.size();
+                for (int idx = 0; idx < size; idx++)
+                    migrating.popBack();
+            }
 }
 
 template<class Ensemble, class Grid>
@@ -156,8 +156,8 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::FieldInterpolatorCICSupercell<double> fieldInterpolator(fields,
         supercellMinPosition, particles.getNumCellsPerSupercell());
-    #pragma omp simd
-    #pragma forceinline
+#pragma omp simd
+#pragma forceinline
     for (int i = 0; i < particleArray.size(); i++) {
         pica::Vector3<double> e, b;
         fieldInterpolator.get(particleArray[i].getPosition(), e, b);
@@ -197,8 +197,7 @@ void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingP
             migratingParticles.add(particleArray[i]);
             typename Ensemble::ParticleRef lastParticle = particleArray.back();
             particleArray[i].setPosition(lastParticle.getPosition());
-            particleArray[i].setMass(lastParticle.getMass());
-            particleArray[i].setCharge(lastParticle.getCharge());
+            particleArray[i].setType(lastParticle.getType());
             particleArray[i].setFactor(lastParticle.getFactor());
             particleArray.popBack();
             i--;
