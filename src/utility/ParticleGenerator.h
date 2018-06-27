@@ -12,15 +12,21 @@ namespace utility {
 
 namespace detail
 {
-void initParticleTypes(Random& random, int numParticleTypes)
+void initParticleTypes(int numParticleTypes)
 {
+    pica::ParticleType electron;
+    electron.mass = pica::constants::electronMass;
+    electron.charge = pica::constants::electronCharge;
+    pica::ParticleType proton;
+    proton.mass = pica::constants::protonMass;
+    proton.charge = -pica::constants::electronCharge;
+    // For now only electrons and protons are supported
     pica::ParticleTypes::typesVector.resize(numParticleTypes);
     for (int i = 0; i < numParticleTypes; i++)
-    {
-        pica::ParticleTypes::typesVector[i].mass = random.getUniform();
-        pica::ParticleTypes::typesVector[i].charge = random.getUniform();
-    }
-
+        if (i % 2)
+            pica::ParticleTypes::typesVector[i] = electron;
+        else
+            pica::ParticleTypes::typesVector[i] = proton;
     pica::ParticleTypes::types = &pica::ParticleTypes::typesVector[0];
     pica::ParticleTypes::numTypes = numParticleTypes;
 }
@@ -59,7 +65,7 @@ ParticleArray generateParticles(int numParticles, int numParticleTypes)
 {
     Random random;
     ParticleArray particles;
-    detail::initParticleTypes(random, numParticleTypes);
+    detail::initParticleTypes(numParticleTypes);
     for (int i = 0; i < numParticles; i++) {
         typename ParticleArray::Particle particle;
         detail::generateParticle(particle, random, numParticleTypes);
@@ -76,7 +82,7 @@ Ensemble generateParticles(pica::Int3 numCells, int numParticlesPerCell, int num
     Ensemble particles(minPosition, maxPosition);
     Random random;
     long numParticles = numCells.volume() * numParticlesPerCell;
-    detail::initParticleTypes(random, numParticleTypes);
+    detail::initParticleTypes(numParticleTypes);
     for (int i = 0; i < numParticles; i++) {
         typename Ensemble::Particle particle;
         detail::generateParticle(particle, random, numParticleTypes);
@@ -93,7 +99,7 @@ Ensemble generateParticles(pica::Int3 numCells, int numParticlesPerCell, pica::V
     Ensemble particles(minPosition, maxPosition, numSupercells, numSupercellsPerCell);
     Random random;
     long numParticles = numCells.volume() * numParticlesPerCell;
-    detail::initParticleTypes(random, numParticleTypes);
+    detail::initParticleTypes(numParticleTypes);
     for (int i = 0; i < numParticles; i++) {
         typename Ensemble::Particle particle;
         detail::generateParticle(particle, random, numParticleTypes);
