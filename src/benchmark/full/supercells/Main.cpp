@@ -156,9 +156,10 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::FieldInterpolatorCICSupercell<double> fieldInterpolator(fields,
         supercellMinPosition, particles.getNumCellsPerSupercell());
-    //#pragma omp simd
+    const int numParticles = particleArray.size();
+    #pragma omp simd
     #pragma forceinline
-    for (int i = 0; i < particleArray.size(); i++) {
+    for (int i = 0; i < numParticles; i++) {
         pica::Vector3<double> e, b;
         fieldInterpolator.get(particleArray[i].getPosition(), e, b);
         pusher.push(&particleArray[i], e, b, dt);
@@ -216,7 +217,8 @@ void depositCurrents(Ensemble& particles, Grid& fields,
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::CurrentDepositorCICSupercell<double> currentDepositor(fields, supercellMinPosition, particles.getNumCellsPerSupercell());
 
-    for (int i = 0; i < particleArray.size(); i++) {
+    const int numParticles = particleArray.size();
+    for (int i = 0; i < numParticles; i++) {
         pica::Vector3<double> position = particleArray[i].getPosition();
         for (int d = 0; d < 3; d++)
             position[d] -= particleArray[i].getVelocity()[d] * halfDt;
