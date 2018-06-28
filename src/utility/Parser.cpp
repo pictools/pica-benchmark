@@ -68,7 +68,7 @@ FullParameters readFullParameters(int argc, char* argv[])
     parser.add<int>("ncellssupercellz", 0, "number of cells per supercells in z, only used for supercells representation and dimension = 3",
         false, 2);
     parser.add("preloading", 0, "enable preloading, only used for supercells ordering");
-    parser.add<int>("tilesize", 0, "size of tile for particle processing, by default tiling disabled", false, 0);
+    parser.add<int>("tilesize", 0, "size of tile for particle processing, by default tiling disabled", false, 8);
     if (useOpenMP())
         parser.add<int>("nthreads", 0, "number of OpenMP threads, default value is based on system settings", false, getNumThreads());
     parser.parse_check(argc, argv);

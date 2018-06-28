@@ -25,24 +25,31 @@ template<class Ensemble, class Grid>
 void runBenchmark(Ensemble& particles, Grid& fields, const utility::FullParameters& parameters);
 
 template<class Ensemble, class Grid>
-void runIteration(Ensemble& particles, Grid& fields, Ensemble& migratingParticles, double dt);
+void runIteration(Ensemble& particles, Grid& fields,
+    Ensemble& migratingParticles, double dt, unsigned tileSize);
 
 template<class Ensemble, class Grid>
-void updateParticles(Ensemble& particles, Grid& fields, Ensemble& migratingParticles, double dt);
+void updateParticles(Ensemble& particles, Grid& fields,
+    Ensemble& migratingParticles, double dt, unsigned tileSize);
 
 template<class Ensemble, class Grid>
 void process(Ensemble& particles, Grid& fields, Ensemble& migratingParticles,
-    pica::Int3 supercellIdx, double dt);
+    pica::Int3 supercellIdx, double dt, unsigned tileSize);
 
 template<class Ensemble>
-void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingParticles, pica::Int3 supercellIdx);
+void migrateAndApplyBoundaryConditions(Ensemble& particles,
+    Ensemble& migratingParticles, pica::Int3 supercellIdx);
 
 template<class Ensemble, class Grid>
+void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx,
+    double dt, unsigned tileSize);
+
+template<class Ensemble, class Grid, unsigned tileSize>
 void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, double dt);
 
 template<class Ensemble, class Grid>
 void depositCurrents(Ensemble& particles, Grid& fields,
-    pica::Int3 supercellIdx, double dt);
+    pica::Int3 supercellIdx, double dt, unsigned tileSize);
 
 template<class Grid>
 void updateFields(Grid& fields, double dt);
@@ -50,7 +57,7 @@ void updateFields(Grid& fields, double dt);
 int main(int argc, char* argv[])
 {
     utility::FullParameters parameters = utility::readFullParameters(argc, argv);
-    utility::printHeader("full-supercells-tiling benchmark: using supercell-based 3D particle ensemble with tiling, CIC form factor and SoA particle representation",
+    utility::printHeader("full-supercells-tiling benchmark: using supercell-based 3D particle ensemble, tiled particles processing, CIC form factor and SoA particle representation",
         parameters);
 
     // Generate particles randomly,
@@ -92,20 +99,22 @@ void runBenchmark(Ensemble& particles, Grid& fields,
     const double dt = 1.0 / (8 * parameters.numCells.x * pica::Constants<double>::c());
 
     for (int i = 0; i < parameters.numIterations; i++)
-        runIteration(particles, fields, migratingParticles, dt);
+        runIteration(particles, fields, migratingParticles, dt, parameters.tileSize);
 }
 
 
 // Simulate one time step
 template<class Ensemble, class Grid>
-void runIteration(Ensemble& particles, Grid& fields, Ensemble& migratingParticles, double dt)
+void runIteration(Ensemble& particles, Grid& fields,
+    Ensemble& migratingParticles, double dt, unsigned tileSize)
 {
-    updateParticles(particles, fields, migratingParticles, dt);
+    updateParticles(particles, fields, migratingParticles, dt, tileSize);
     updateFields(fields, dt);
 }
 
 template<class Ensemble, class Grid>
-void updateParticles(Ensemble& particles, Grid& fields, Ensemble& migratingParticles, double dt)
+void updateParticles(Ensemble& particles, Grid& fields,
+    Ensemble& migratingParticles, double dt, unsigned tileSize)
 {
     pica::Int3 numSupercells = particles.getNumSupercells();
 
@@ -114,40 +123,63 @@ void updateParticles(Ensemble& particles, Grid& fields, Ensemble& migratingParti
         if (particles.getNumCellsPerSupercell()[d] == 1)
             superCellStep[d] = 4;
     for (int startI = 0; startI < superCellStep.x; startI++)
-        for (int startJ = 0; startJ < superCellStep.y; startJ++)
-            for (int startK = 0; startK < superCellStep.z; startK++) {
-#pragma omp parallel for collapse(3)
-                for (int i = startI; i < numSupercells.x; i += superCellStep.x)
-                    for (int j = startJ; j < numSupercells.y; j += superCellStep.y)
-                        for (int k = startK; k < numSupercells.z; k += superCellStep.z)
-                            process(particles, fields, migratingParticles, pica::Int3(i, j, k), dt);
-            }
+    for (int startJ = 0; startJ < superCellStep.y; startJ++)
+    for (int startK = 0; startK < superCellStep.z; startK++) {
+        #pragma omp parallel for collapse(3)
+        for (int i = startI; i < numSupercells.x; i += superCellStep.x)
+        for (int j = startJ; j < numSupercells.y; j += superCellStep.y)
+        for (int k = startK; k < numSupercells.z; k += superCellStep.z)
+            process(particles, fields, migratingParticles, pica::Int3(i, j, k), dt, tileSize);
+    }
 
     // Finalize migration
-#pragma omp parallel for collapse(3)
+    #pragma omp parallel for collapse(3)
     for (int i = 0; i < numSupercells.x; i++)
-        for (int j = 0; j < numSupercells.y; j++)
-            for (int k = 0; k < numSupercells.z; k++) {
-                pica::ParticleArraySoA<pica::Particle<pica::Three> >& migrating = migratingParticles.getParticles(pica::Int3(i, j, k));
-                for (int idx = 0; idx < migrating.size(); idx++)
-                    particles.add(migrating[idx]);
-                int size = migrating.size();
-                for (int idx = 0; idx < size; idx++)
-                    migrating.popBack();
-            }
+    for (int j = 0; j < numSupercells.y; j++)
+    for (int k = 0; k < numSupercells.z; k++) {
+        pica::ParticleArraySoA<pica::Particle<pica::Three> >& migrating = migratingParticles.getParticles(pica::Int3(i, j, k));
+        for (int idx = 0; idx < migrating.size(); idx++)
+            particles.add(migrating[idx]);
+        int size = migrating.size();
+        for (int idx = 0; idx < size; idx++)
+            migrating.popBack();
+    }
 }
 
 template<class Ensemble, class Grid>
 void process(Ensemble& particles, Grid& fields, Ensemble& migratingParticles,
-    pica::Int3 supercellIdx, double dt)
+    pica::Int3 supercellIdx, double dt, unsigned tileSize)
 {
-    push(particles, fields, supercellIdx, dt);
+    push(particles, fields, supercellIdx, dt, tileSize);
     migrateAndApplyBoundaryConditions(particles, migratingParticles, supercellIdx);
-    depositCurrents(particles, fields, supercellIdx, dt);
+    depositCurrents(particles, fields, supercellIdx, dt, tileSize);
 }
 
 template<class Ensemble, class Grid>
-void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, double dt)
+void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx,
+    double dt, unsigned tileSize)
+{
+    // Choose appropriate implementation
+    if (tileSize <= 4)
+        return push<Ensemble, Grid, 4>(particles, fields, supercellIdx, dt);
+    if (tileSize <= 8)
+        return push<Ensemble, Grid, 8>(particles, fields, supercellIdx, dt);
+    if (tileSize <= 12)
+        return push<Ensemble, Grid, 12>(particles, fields, supercellIdx, dt);
+    if (tileSize <= 16)
+        return push<Ensemble, Grid, 16>(particles, fields, supercellIdx, dt);
+    if (tileSize <= 20)
+        return push<Ensemble, Grid, 20>(particles, fields, supercellIdx, dt);
+    if (tileSize <= 24)
+        return push<Ensemble, Grid, 24>(particles, fields, supercellIdx, dt);
+    if (tileSize <= 28)
+        return push<Ensemble, Grid, 28>(particles, fields, supercellIdx, dt);
+    return push<Ensemble, Grid, 32>(particles, fields, supercellIdx, dt);
+}
+
+template<class Ensemble, class Grid, unsigned tileSize>
+void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx,
+    double dt)
 {
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles(supercellIdx);
@@ -156,12 +188,22 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::FieldInterpolatorCICSupercell<double> fieldInterpolator(fields,
         supercellMinPosition, particles.getNumCellsPerSupercell());
-#pragma omp simd
-#pragma forceinline
-    for (int i = 0; i < particleArray.size(); i++) {
-        pica::Vector3<double> e, b;
-        fieldInterpolator.get(particleArray[i].getPosition(), e, b);
-        pusher.push(&particleArray[i], e, b, dt);
+
+    pica::Vector3<double> e[tileSize];
+    pica::Vector3<double> b[tileSize];
+    const int numParticles = particleArray.size();
+    const int numTiles = (numParticles + tileSize - 1) / tileSize;
+    for (int tileIdx = 0; tileIdx < numTiles; tileIdx++) {
+        const int startIdx = tileIdx * tileSize;
+        const int endIdx = std::min<int>(startIdx + tileSize, numParticles);
+        #pragma omp simd
+        #pragma forceinline
+        for (int i = startIdx; i < endIdx; i++)
+            fieldInterpolator.get(particleArray[i].getPosition(), e[i - startIdx], b[i - startIdx]);
+        #pragma omp simd
+        #pragma forceinline
+        for (int i = startIdx; i < endIdx; i++)
+            pusher.push(&particleArray[i], e[i - startIdx], b[i - startIdx], dt);
     }
 }
 
@@ -207,7 +249,7 @@ void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingP
 
 template<class Ensemble, class Grid>
 void depositCurrents(Ensemble& particles, Grid& fields,
-    pica::Int3 supercellIdx, double dt)
+    pica::Int3 supercellIdx, double dt, unsigned tileSize)
 {
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles(supercellIdx);
@@ -216,13 +258,19 @@ void depositCurrents(Ensemble& particles, Grid& fields,
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::CurrentDepositorCICSupercell<double> currentDepositor(fields, supercellMinPosition, particles.getNumCellsPerSupercell());
 
-    for (int i = 0; i < particleArray.size(); i++) {
-        pica::Vector3<double> position = particleArray[i].getPosition();
-        for (int d = 0; d < 3; d++)
-            position[d] -= particleArray[i].getVelocity()[d] * halfDt;
-        pica::Vector3<double> current = particleArray[i].getVelocity() *
-            particleArray[i].getCharge() * (double)particleArray[i].getFactor();
-        currentDepositor.deposit(position, current);
+    const int numParticles = particleArray.size();
+    const int numTiles = (numParticles + tileSize - 1) / tileSize;
+    for (int tileIdx = 0; tileIdx < numTiles; tileIdx++) {
+        const int startIdx = tileIdx * tileSize;
+        const int endIdx = std::min<int>(startIdx + tileSize, numParticles);
+        for (int i = startIdx; i < endIdx; i++) {
+            pica::Vector3<double> position = particleArray[i].getPosition();
+            for (int d = 0; d < 3; d++)
+                position[d] -= particleArray[i].getVelocity()[d] * halfDt;
+            pica::Vector3<double> current = particleArray[i].getVelocity() *
+                particleArray[i].getCharge() * (double)particleArray[i].getFactor();
+            currentDepositor.deposit(position, current);
+        }
     }
 }
 
