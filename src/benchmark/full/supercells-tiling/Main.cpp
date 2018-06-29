@@ -196,11 +196,11 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx,
     for (int tileIdx = 0; tileIdx < numTiles; tileIdx++) {
         const int startIdx = tileIdx * tileSize;
         const int endIdx = std::min<int>(startIdx + tileSize, numParticles);
-        #pragma omp simd
+//      #pragma omp simd
         #pragma forceinline
         for (int i = startIdx; i < endIdx; i++)
             fieldInterpolator.get(particleArray[i].getPosition(), e[i - startIdx], b[i - startIdx]);
-        #pragma omp simd
+//      #pragma omp simd
         #pragma forceinline
         for (int i = startIdx; i < endIdx; i++)
             pusher.push(&particleArray[i], e[i - startIdx], b[i - startIdx], dt);

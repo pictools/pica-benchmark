@@ -157,7 +157,7 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
     pica::FieldInterpolatorCICSupercell<double> fieldInterpolator(fields,
         supercellMinPosition, particles.getNumCellsPerSupercell());
     const int numParticles = particleArray.size();
-    #pragma omp simd
+//  #pragma omp simd
     #pragma forceinline
     for (int i = 0; i < numParticles; i++) {
         pica::Vector3<double> e, b;
