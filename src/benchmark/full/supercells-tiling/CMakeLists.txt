@@ -20,7 +20,7 @@ else()
         benchmark-utility)
 endif()
 
-add_custom_target(post-full-supercells-tiling ALL DEPENDS full-supercells
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:full-supercells>
-                               ${ROOT_DIR}/bin/$<TARGET_FILE_NAME:full-supercells>)
+add_custom_target(post-full-supercells-tiling ALL DEPENDS full-supercells-tiling
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:full-supercells-tiling>
+                               ${ROOT_DIR}/bin/$<TARGET_FILE_NAME:full-supercells-tiling>)
 set_target_properties(post-full-supercells-tiling PROPERTIES FOLDER BuildInfrastructure)

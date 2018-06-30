@@ -142,7 +142,7 @@ void push(Ensemble& particles, const Grid& fields,
     pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles();
     pica::BorisPusherBaseline<Particle> pusher;
     pica::FieldInterpolatorCIC<Grid> fieldInterpolator(fields);
-    #pragma omp simd
+//  #pragma omp simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++) {
         pica::Vector3<double> e, b;
