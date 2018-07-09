@@ -45,7 +45,7 @@ void generateParticle(Particle& particle, Random& random, int numParticleTypes)
     particle.setPosition(position);
     // The standard deviation is sqrt(1/(2*alpha)), where alpha is
     // 3/2 * ((T/mc^2 + 1)^2 - 1)^(-1)
-    double temperature = 1.0;
+    double temperature = 1e-2 * pica::constants::electronMass * pica::constants::c * pica::constants::c;
     double alpha = temperature / particle.getMass() / pica::constants::c / pica::constants::c + 1;
     alpha = 1.5 / (alpha * alpha - 1);
     double sigma = sqrt(0.5 / alpha) * particle.getMass() * pica::constants::c;
