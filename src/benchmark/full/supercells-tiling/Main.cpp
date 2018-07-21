@@ -183,7 +183,7 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx,
 {
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles(supercellIdx);
-    pica::BorisPusher<Particle> pusher;
+    pica::BorisPusher<Particle, double> pusher(dt);
     pica::FP3 supercellMinPosition = particles.getMinPosition() +
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::FieldInterpolatorCICSupercell<double> fieldInterpolator(fields,
@@ -203,7 +203,7 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx,
 //      #pragma omp simd
         #pragma forceinline
         for (int i = startIdx; i < endIdx; i++)
-            pusher.push(&particleArray[i], e[i - startIdx], b[i - startIdx], dt);
+            pusher.push(&particleArray[i], e[i - startIdx], b[i - startIdx]);
     }
 }
 

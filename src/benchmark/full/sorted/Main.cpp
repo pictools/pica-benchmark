@@ -144,14 +144,14 @@ void push(Ensemble& particles, const Grid& fields,
 {
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArraySoA<Particle>& particleArray = particles.getParticles();
-    pica::BorisPusher<Particle> pusher;
+    pica::BorisPusher<Particle, double> pusher(dt);
     pica::FieldInterpolatorCIC<Grid> fieldInterpolator(fields);
 //  #pragma omp simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++) {
         pica::Vector3<double> e, b;
         fieldInterpolator.get(particleArray[i].getPosition(), e, b);
-        pusher.push(&particleArray[i], e, b, dt);
+        pusher.push(&particleArray[i], e, b);
     }
 }
 

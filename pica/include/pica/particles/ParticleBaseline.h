@@ -54,13 +54,30 @@ public:
     PositionType getPosition() const { return position; }
     void setPosition(const PositionType& newPosition) { position = newPosition; }
 
-    MomentumType getMomentum() const { return momentum; }
-    void setMomentum(const MomentumType& newMomentum) { momentum = newMomentum; }
+    MomentumType getMomentum() const
+    {
+        return p * Constants<MassType>::c() * getMass();
+    }
 
-    MomentumType getVelocity() const { return momentum / sqrt(sqr(getMass()) + (momentum / Constants<FP>::c()).norm2()); }
-    void setVelocity(const MomentumType& newVelocity) { momentum = newVelocity * getMass() / sqrt(static_cast<Real>(1.0) - (newVelocity / constants::c).norm2()); }
+    void setMomentum(const MomentumType& newMomentum)
+    {
+        p = newMomentum / (Constants<GammaType>::c() * getMass());
+    }
 
-    GammaType getGamma() const { return sqrt(static_cast<FP>(1.0) + (momentum / (getMass() * Constants<GammaType>::c())).norm2()); }
+    MomentumType getP() const { return p; }
+    void setP(const MomentumType& newP) { p = newP; }
+
+    MomentumType getVelocity() const
+    {
+        return p * Constants<GammaType>::c() / sqrt((FP)1 + p.norm2());
+    }
+
+    void setVelocity(const MomentumType& newVelocity)
+    {
+        p = newVelocity / sqrt(constants::c * constants::c - newVelocity.norm2());
+    }
+
+    GammaType getGamma() const { return sqrt(static_cast<FP>(1.0) + p.norm2()); }
 
     MassType getMass() const { return ParticleTypes::types[typeIndex].mass; }
 
@@ -75,7 +92,7 @@ public:
 private:
 
     PositionType position;
-    MomentumType momentum;
+    MomentumType p;
     FactorType factor;
     TypeIndexType typeIndex;
 };

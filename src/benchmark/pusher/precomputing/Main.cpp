@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
     // Generate particles randomly,
     // particular coordinates and other data are not important for this benchmark
-    typedef pica::Particle<pica::Three> Particle;
+    typedef pica::ParticleBaseline<pica::Three> Particle;
     typedef pica::ParticleArrayAoS<Particle> Particles;
     Particles particles = utility::generateParticles<Particles>(parameters.numParticles, parameters.numParticleTypes);
 
@@ -112,9 +112,9 @@ void process(ParticleArray& particles,
     const FieldValue& magneticFieldValue,
     int beginIdx, int endIdx, double dt)
 {
-    pica::BorisPusher<typename ParticleArray::Particle> pusher;
+    pica::BorisPusher<typename ParticleArray::Particle, double> pusher(dt);
     #pragma omp simd
     #pragma forceinline
     for (int i = beginIdx; i < endIdx; i++)
-        pusher.push(&particles[i], electricFieldValue, magneticFieldValue, dt);
+        pusher.push(&particles[i], electricFieldValue, magneticFieldValue);
 }
