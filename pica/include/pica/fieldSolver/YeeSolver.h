@@ -149,7 +149,7 @@ struct YeeSolver::Implementation<Three, Real> {
             grid.ey(i, j, k) += coeffCurrent * grid.jy(i, j, k) +
                 coeff.z * (grid.bx(i, j, k + 1) - grid.bx(i, j, k)) -
                 coeff.x * (grid.bz(i + 1, j, k) - grid.bz(i, j, k));
-            grid.ez(i, j, k) += coeffCurrent * grid.bz(i, j, k) +
+            grid.ez(i, j, k) += coeffCurrent * grid.jz(i, j, k) +
                 coeff.x * (grid.by(i + 1, j, k) - grid.by(i, j, k)) -
                 coeff.y * (grid.bx(i, j + 1, k) - grid.bx(i, j, k));
         }
