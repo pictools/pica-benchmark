@@ -44,7 +44,7 @@ protected:
     PositionType inverseStep;
     PositionType normalizedOrigin, normalizedOriginStaggered;
 
-};    
+};
 
 } // namespace pica::internal
 
@@ -206,9 +206,9 @@ public:
         for (int k = 0; k < size.z; k++)
         {
             IndexType gridxIdx = baseIdx + IndexType(i, j, k);
-            grid.jx(gridxIdx.x, gridxIdx.y, gridxIdx.z) = jx[i][j][k] * normalization;
-            grid.jy(gridxIdx.x, gridxIdx.y, gridxIdx.z) = jy[i][j][k] * normalization;
-            grid.jz(gridxIdx.x, gridxIdx.y, gridxIdx.z) = jz[i][j][k] * normalization;
+            grid.jx(gridxIdx.x, gridxIdx.y, gridxIdx.z) += jx[i][j][k] * normalization;
+            grid.jy(gridxIdx.x, gridxIdx.y, gridxIdx.z) += jy[i][j][k] * normalization;
+            grid.jz(gridxIdx.x, gridxIdx.y, gridxIdx.z) += jz[i][j][k] * normalization;
         }
     }
 

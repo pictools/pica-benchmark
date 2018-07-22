@@ -40,6 +40,9 @@ void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingP
 template<class Ensemble, class Grid>
 void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, double dt);
 
+template<class Grid>
+void zeroizeCurrents(Grid& fields);
+
 template<class Ensemble, class Grid>
 void depositCurrents(Ensemble& particles, Grid& fields,
     pica::Int3 supercellIdx, double dt);
@@ -100,6 +103,7 @@ void runBenchmark(Ensemble& particles, Grid& fields,
 template<class Ensemble, class Grid>
 void runIteration(Ensemble& particles, Grid& fields, Ensemble& migratingParticles, double dt)
 {
+    zeroizeCurrents(fields);
     updateParticles(particles, fields, migratingParticles, dt);
     updateFields(fields, dt);
 }
@@ -203,6 +207,21 @@ void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingP
             particleArray.popBack();
             i--;
         }
+    }
+}
+
+template<class Grid>
+void zeroizeCurrents(Grid& fields)
+{
+    typedef typename Grid::IndexType IndexType;
+    IndexType gridSize = fields.getSize();
+    #pragma omp parallel for collapse(3)
+    for (int i = 0; i < gridSize.x; i++)
+    for (int j = 0; j < gridSize.y; j++)
+    for (int k = 0; k < gridSize.z; k++) {
+        fields.jx(i, j, k) = 0.0;
+        fields.jy(i, j, k) = 0.0;
+        fields.jz(i, j, k) = 0.0;
     }
 }
 
