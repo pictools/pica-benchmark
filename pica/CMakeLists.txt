@@ -115,7 +115,6 @@ set(pica_headers
     ${PICA_HEADER_DIR}/particles/ParticleTraits.h
     ${PICA_HEADER_DIR}/particlePush/BorisPusher.h
     ${PICA_HEADER_DIR}/particlePush/BorisPusherBaseline.h
-    ${PICA_HEADER_DIR}/particlePush/BorisPusherModified.h
 	${PICA_HEADER_DIR}/threading/OpenMPHelper.h
 	${PICA_HEADER_DIR}/utility/Array.h
 	${PICA_HEADER_DIR}/utility/Assert.h

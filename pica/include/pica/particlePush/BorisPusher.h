@@ -37,10 +37,10 @@ struct BorisPusher {
         Real eCoeff = coeff[particle->getType()];
         MomentumType eMomentum = e * eCoeff;
         MomentumType um = particle->getP() + eMomentum;
-        MomentumType t = b * eCoeff / sqrt((Real)1.0 + um.norm2());
+        MomentumType t = b * (eCoeff / sqrt((Real)1.0 + um.norm2()));
         MomentumType uprime = um + cross(um, t);
-        MomentumType s = t * (Real)2.0 / ((Real)1.0 + t.norm2());
-        particle->setP((um + cross(uprime, s) + eMomentum));
+        MomentumType s = t * ((Real)2.0 / ((Real)1.0 + t.norm2()));
+        particle->setP(um + cross(uprime, s) + eMomentum);
         PositionType position = particle->getPosition();
         position += particle->getVelocity() * dt;
         particle->setPosition(position);

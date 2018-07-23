@@ -15,7 +15,7 @@
 #include "pica/particles/Ensemble.h"
 #include "pica/particles/Particle.h"
 #include "pica/particles/ParticleArray.h"
-#include "pica/particlePush/BorisPusherModified.h"
+#include "pica/particlePush/BorisPusher.h"
 #include "pica/threading/OpenMPHelper.h"
 
 #include <algorithm>
@@ -155,7 +155,7 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
 {
     typedef typename Ensemble::Particle Particle;
     pica::ParticleArrayAoS<Particle>& particleArray = particles.getParticles(supercellIdx);
-    pica::BorisPusher<Particle> pusher;
+    pica::BorisPusher<Particle, double> pusher(dt);
     pica::FP3 supercellMinPosition = particles.getMinPosition() +
         fields.getStep() * pica::FP3(supercellIdx * particles.getNumCellsPerSupercell());
     pica::FieldInterpolatorCICSupercell<double> fieldInterpolator(fields,
@@ -183,7 +183,7 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
 #pragma ivdep
 #pragma vector always
         for (int i = 0; i < tileSize; i++)
-            pusher.push(&particleArray[i + startIdx], e[i], b[i], dt);
+            pusher.push(&particleArray[i + startIdx], e[i], b[i]);
     }
 
     const int startIdx = numTiles * tileSize;
@@ -202,7 +202,7 @@ void push(Ensemble& particles, const Grid& fields, pica::Int3 supercellIdx, doub
 #pragma ivdep
 #pragma vector always
     for (int i = startIdx; i < endIdx; i++)
-        pusher.push(&particleArray[i], e[i - startIdx], b[i - startIdx], dt);
+        pusher.push(&particleArray[i], e[i - startIdx], b[i - startIdx]);
 
 }
 
