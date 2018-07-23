@@ -16,25 +16,21 @@
 #include <algorithm>
 #include <memory>
 
+using pica::FP;
+using pica::FP3;
+
+struct Particle
+{
+    FP3 position;
+    FP3 p;
+    int typeIndex;
+};
 
 template<class ParticleArray, class FieldValue>
 void runBenchmark(ParticleArray& particles,
     const FieldValue& electricFieldValues,
     const FieldValue& magneticFieldValues,
     const utility::PusherParameters& parameters);
-
-template<class ParticleArray, class FieldValue>
-void runIteration(ParticleArray& particles,
-    const FieldValue& electricFieldValues,
-    const FieldValue& magneticFieldValues,
-    double dt);
-
-template<class ParticleArray, class FieldValue>
-void process(ParticleArray& particles,
-    const FieldValue& electricFieldValues,
-    const FieldValue& magneticFieldValues,
-    int beginIdx, int endIdx, double dt);
-
 
 int main(int argc, char* argv[])
 {
@@ -44,14 +40,21 @@ int main(int argc, char* argv[])
 
     // Generate particles randomly,
     // particular coordinates and other data are not important for this benchmark
-    typedef pica::ParticleBaseline<pica::Three> Particle;
-    typedef pica::ParticleArrayAoS<Particle> Particles;
-    Particles particles = utility::generateParticles<Particles>(parameters.numParticles, parameters.numParticleTypes);
+    std::vector<Particle> particles(parameters.numParticles);
+    utility::Random random;
+    utility::detail::initParticleTypes(parameters.numParticleTypes);
+    for (int i = 0; i < parameters.numParticles; i++) {
+        pica::Particle3d particle;
+        utility::detail::generateParticle(particle, random, parameters.numParticleTypes);
+        particles[i].position = particle.getPosition();
+        particles[i].p = particle.getP();
+        particles[i].typeIndex = particle.getType();
+    }
 
     // Generate random field values for each particle
     // to ensure there is no compile-time substitution of fields,
     // particular values of field are not important for this benchmark
-    typedef pica::Vector3<double> FieldValue;
+    typedef FP3 FieldValue;
     FieldValue electricFieldValue = utility::generateField<double>();
     FieldValue magneticFieldValue = utility::generateField<double>();
 
@@ -80,41 +83,39 @@ void runBenchmark(ParticleArray& particles,
     utility::Random random;
     const double dt = random.getUniform() / pica::Constants<double>::c();
 
-    for (int i = 0; i < parameters.numIterations; i++)
-        runIteration(particles, electricFieldValue, magneticFieldValue, dt);
-}
-
-
-// Push all particles by one time step
-template<class ParticleArray, class FieldValue>
-void runIteration(ParticleArray& particles,
-    const FieldValue& electricFieldValue,
-    const FieldValue& magneticFieldValue,
-    double dt)
-{
-    // Each thread processes some particles
-    const int numParticles = particles.size();
-    const int numThreads = pica::getNumThreads();
-    const int particlesPerThread = (numParticles + numThreads - 1) / numThreads;
-    #pragma omp parallel for
-    for (int idx = 0; idx < numThreads; idx++) {
-        const int beginIdx = idx * particlesPerThread;
-        const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
-        process(particles, electricFieldValue, magneticFieldValue, beginIdx, endIdx, dt);
+    std::vector<double> coeff(parameters.numParticleTypes);
+    for (int i = 0; i < parameters.numParticleTypes; i++)
+    {
+        coeff[i] = pica::ParticleTypes::typesVector[i].charge * dt /
+            (2.0 * pica::ParticleTypes::typesVector[i].mass * pica::Constants<FP>::c());
     }
-}
 
+    for (int i = 0; i < parameters.numIterations; i++) {
+        // Each thread processes some particles
+        const int numParticles = particles.size();
+        const int numThreads = pica::getNumThreads();
+        const int particlesPerThread = (numParticles + numThreads - 1) / numThreads;
 
-// Process particles with indexes in [beginIdx, endIdx) range
-template<class ParticleArray, class FieldValue>
-void process(ParticleArray& particles,
-    const FieldValue& electricFieldValue,
-    const FieldValue& magneticFieldValue,
-    int beginIdx, int endIdx, double dt)
-{
-    pica::BorisPusher<typename ParticleArray::Particle, double> pusher(dt);
-    #pragma omp simd
-    #pragma forceinline
-    for (int i = beginIdx; i < endIdx; i++)
-        pusher.push(&particles[i], electricFieldValue, magneticFieldValue);
+        #pragma omp parallel for
+        for (int idx = 0; idx < numThreads; idx++) {
+            const int beginIdx = idx * particlesPerThread;
+            const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
+
+            #pragma omp simd
+            #pragma forceinline
+            for (int i = beginIdx; i < endIdx; i++) {
+                // The code below uses precomputed coefficient:
+                // eCoeff = q * dt / (2 * m * c)
+                FP eCoeff = coeff[particles[i].typeIndex];
+                FP3 eMomentum = electricFieldValue * eCoeff;
+                FP3 um = particles[i].p + eMomentum;
+                FP3 t = magneticFieldValue * (eCoeff / sqrt((double)1.0 + um.norm2()));
+                FP3 uprime = um + pica::cross(um, t);
+                FP3 s = t * ((double)2.0 / ((double)1.0 + t.norm2()));
+                particles[i].p = um + pica::cross(uprime, s) + eMomentum;
+                FP3 v = particles[i].p / sqrt(1.0 + particles[i].p.norm2());
+                particles[i].position += v * dt;
+            }
+        }
+    }
 }
