@@ -4,7 +4,7 @@
 
 #include "pica/math/Constants.h"
 #include "pica/math/Vectors.h"
-#include "pica/particles/ParticleBaseline.h"
+#include "pica/particles/Particle.h"
 
 #include <cmath>
 

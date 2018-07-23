@@ -8,9 +8,7 @@
 
 #include "pica/math/Dimension.h"
 #include "pica/math/Vectors.h"
-#include "pica/particles/ParticleBaseline.h"
 #include "pica/particles/ParticleArray.h"
-#include "pica/particlePush/BorisPusherBaseline.h"
 #include "pica/threading/OpenMPHelper.h"
 
 #include <algorithm>
