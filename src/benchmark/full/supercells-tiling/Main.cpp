@@ -243,6 +243,7 @@ void migrateAndApplyBoundaryConditions(Ensemble& particles, Ensemble& migratingP
             migratingParticles.add(particleArray[i]);
             typename Ensemble::ParticleRef lastParticle = particleArray.back();
             particleArray[i].setPosition(lastParticle.getPosition());
+            particleArray[i].setMomentum(lastParticle.getMomentum());
             particleArray[i].setType(lastParticle.getType());
             particleArray[i].setFactor(lastParticle.getFactor());
             particleArray.popBack();
