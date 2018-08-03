@@ -182,7 +182,7 @@ public:
         normalizedOrigin((minPosition - grid.getStep()) / grid.getStep()),
         normalizedOriginStaggered(normalizedOrigin + ones<Three, ScalarPositionType>() * static_cast<ScalarPositionType>(0.5))
     {
-        baseIdx = truncate(normalizedOriginStaggered);
+        baseIdx = truncate(minPosition / grid.getStep()) + Int3(1, 1, 1);
         size = numCellsPerSupercell + IndexType(3, 3, 3);
         /// Poor man's check
         for (int d = 0; d < 3; d++)
