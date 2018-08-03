@@ -101,7 +101,7 @@ struct YeeSolver::Implementation<Two, Real> {
         for (int j = begin.y; j < end.y; j++)
             grid.ex(end.x, j) += coeffCurrent * grid.jx(end.x, j) + coeff.y * (grid.bz(end.x, j + 1) - grid.bz(end.x, j));
     }
-    
+
     static void updateB(YeeGrid<Two, Real>& grid, Real dt)
     {
         typedef typename YeeGrid<Two, Real>::ValueType ValueType;
@@ -157,7 +157,7 @@ struct YeeSolver::Implementation<Three, Real> {
         #pragma omp parallel for
         for (int i = begin.x; i < end.x; i++)
         for (int j = begin.y; j < end.y; j++)
-            grid.ez(i, j, end.z) += coeffCurrent * grid.bz(i, j, end.z) +
+            grid.ez(i, j, end.z) += coeffCurrent * grid.jz(i, j, end.z) +
                 coeff.x * (grid.by(i + 1, j, end.z) - grid.by(i, j, end.z)) -
                 coeff.y * (grid.bx(i, j + 1, end.z) - grid.bx(i, j, end.z));
         #pragma omp parallel for
