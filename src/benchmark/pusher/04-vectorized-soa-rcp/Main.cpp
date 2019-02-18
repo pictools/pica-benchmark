@@ -8,6 +8,7 @@
 #include "pica/math/Constants.h"
 #include "pica/particles/Particle.h"
 #include "pica/threading/OpenMPHelper.h"
+#include <mathimf.h>
 
 #include <algorithm>
 #include <memory>
@@ -17,7 +18,7 @@ using namespace pica;
 int main(int argc, char* argv[])
 {
     utility::PusherParameters parameters = utility::readPusherParameters(argc, argv);
-    utility::printHeader("pusher-vectorized benchmark: using optimized 3D Boris particle pusher implementation with precomputing of inverse gamma and SoA particle representation",
+    utility::printHeader("pusher-vectorized-rcp benchmark: using optimized 3D Boris particle pusher implementation with SoA particle representation and reciprocal instructions",
         parameters);
 
     std::vector<double> dataX(parameters.numParticles);
@@ -78,6 +79,7 @@ int main(int argc, char* argv[])
             const int endIdx = std::min(beginIdx + chunkSize, parameters.numParticles);
 
             #pragma omp simd
+            #pragma forceinline
             for (int i = beginIdx; i < endIdx; i++)
             {
                 double eCoeff = coeff[typeIndex[idx]];
@@ -87,7 +89,7 @@ int main(int argc, char* argv[])
                 double umX = px[i] + eMomentumX;
                 double umY = py[i] + eMomentumY;
                 double umZ = pz[i] + eMomentumZ;
-                double cf = eCoeff / sqrt(1.0 + umX * umX + umY * umY + umZ * umZ);
+                double cf = eCoeff * invsqrt(1.0 + umX * umX + umY * umY + umZ * umZ);
                 double tX = magneticFieldValue.x * cf;
                 double tY = magneticFieldValue.y * cf;
                 double tZ = magneticFieldValue.z * cf;
@@ -101,7 +103,7 @@ int main(int argc, char* argv[])
                 px[i] = umX + uprimeY * sZ - uprimeZ * sY + eMomentumX;
                 py[i] = umY + uprimeZ * sX - uprimeX * sZ + eMomentumY;
                 pz[i] = umZ + uprimeX * sY - uprimeY * sX + eMomentumZ;
-                double invGamma = 1.0 / sqrt(1.0 + px[i] * px[i] + py[i] * py[i] + pz[i] * pz[i]);
+                double invGamma = invsqrt(1.0 + px[i] * px[i] + py[i] * py[i] + pz[i] * pz[i]);
 
                 cf = pica::Constants<double>::c() * invGamma * dt;
                 x[i] += px[i] * cf;

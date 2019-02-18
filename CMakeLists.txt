@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.0)
 
 project(pica-benchmark)
 
-set(CMAKE_CXX_FLAGS "-DNDEBUG -O2")
+set(CMAKE_CXX_FLAGS "-g -DNDEBUG -O3 -xCOMMON-AVX512 -qopenmp -qopt-zmm-usage=high")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

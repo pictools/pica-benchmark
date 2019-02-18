@@ -101,8 +101,6 @@ void runBenchmark(ParticleArray& particles,
             const int beginIdx = idx * particlesPerThread;
             const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
 
-            #pragma omp simd
-            #pragma forceinline
             for (int i = beginIdx; i < endIdx; i++) {
                 // The code below uses precomputed coefficient:
                 // eCoeff = q * dt / (2 * m * c)

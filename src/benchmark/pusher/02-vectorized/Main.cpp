@@ -8,7 +8,9 @@
 
 #include "pica/math/Dimension.h"
 #include "pica/math/Vectors.h"
+#include "pica/particles/Particle.h"
 #include "pica/particles/ParticleArray.h"
+#include "pica/particlePush/BorisPusher.h"
 #include "pica/threading/OpenMPHelper.h"
 
 #include <algorithm>
@@ -20,23 +22,20 @@ using pica::FP3;
 struct Particle
 {
     FP3 position;
-    FP3 momentum;
+    FP3 p;
     int typeIndex;
-
-    FP getMass() { return pica::ParticleTypes::types[typeIndex].mass; }
-    FP getCharge() { return pica::ParticleTypes::types[typeIndex].charge; }
 };
 
 template<class ParticleArray, class FieldValue>
 void runBenchmark(ParticleArray& particles,
-    const FieldValue& electricFieldValue,
-    const FieldValue& magneticFieldValue,
+    const FieldValue& electricFieldValues,
+    const FieldValue& magneticFieldValues,
     const utility::PusherParameters& parameters);
 
 int main(int argc, char* argv[])
 {
     utility::PusherParameters parameters = utility::readPusherParameters(argc, argv);
-    utility::printHeader("pusher-baseline benchmark: using baseline 3D Boris particle pusher implementation and AoS particle representation",
+    utility::printHeader("pusher-precomputing benchmark: using optimized 3D Boris particle pusher implementation with precomputing of inverse gamma and AoS particle representation",
         parameters);
 
     // Generate particles randomly,
@@ -48,20 +47,20 @@ int main(int argc, char* argv[])
         pica::Particle3d particle;
         utility::detail::generateParticle(particle, random, parameters.numParticleTypes);
         particles[i].position = particle.getPosition();
-        particles[i].momentum = particle.getMomentum();
+        particles[i].p = particle.getP();
         particles[i].typeIndex = particle.getType();
     }
 
     // Generate random field values for each particle
     // to ensure there is no compile-time substitution of fields,
     // particular values of field are not important for this benchmark
-    typedef pica::Vector3<double> FieldValue;
-    FieldValue electricFieldValues = utility::generateField<double>();
-    FieldValue magneticFieldValues = utility::generateField<double>();
+    typedef FP3 FieldValue;
+    FieldValue electricFieldValue = utility::generateField<double>();
+    FieldValue magneticFieldValue = utility::generateField<double>();
 
     std::auto_ptr<utility::Stopwatch> timer(utility::createStopwatch());
     timer->start();
-    runBenchmark(particles, electricFieldValues, magneticFieldValues, parameters);
+    runBenchmark(particles, electricFieldValue, magneticFieldValue, parameters);
     timer->stop();
 
     utility::printResult(parameters, timer->getElapsed());
@@ -84,6 +83,13 @@ void runBenchmark(ParticleArray& particles,
     utility::Random random;
     const double dt = random.getUniform() / pica::Constants<double>::c();
 
+    std::vector<double> coeff(parameters.numParticleTypes);
+    for (int i = 0; i < parameters.numParticleTypes; i++)
+    {
+        coeff[i] = pica::ParticleTypes::typesVector[i].charge * dt /
+            (2.0 * pica::ParticleTypes::typesVector[i].mass * pica::Constants<FP>::c());
+    }
+
     for (int i = 0; i < parameters.numIterations; i++) {
         // Each thread processes some particles
         const int numParticles = particles.size();
@@ -95,18 +101,19 @@ void runBenchmark(ParticleArray& particles,
             const int beginIdx = idx * particlesPerThread;
             const int endIdx = std::min(beginIdx + particlesPerThread, numParticles);
 
-            #pragma omp simd
+            #pragma simd
             #pragma forceinline
             for (int i = beginIdx; i < endIdx; i++) {
-                FP3 eMomentum = electricFieldValue * particles[i].getCharge() * dt /
-                    ((FP)2.0 * particles[i].getMass() * pica::Constants<FP>::c());
-                FP3 um = particles[i].momentum / (particles[i].getMass() * pica::Constants<FP>::c()) + eMomentum;
-                FP3 t = magneticFieldValue * particles[i].getCharge() * dt /
-                    ((FP)2.0 * particles[i].getMass() * pica::Constants<FP>::c() * sqrt(1.0 + um.norm2()));
-                FP3 uprime = um + cross(um, t);
-                FP3 s = t * (FP)2.0 / ((FP)1.0 + t.norm2());
-                particles[i].momentum = (um + pica::cross(uprime, s) + eMomentum) * particles[i].getMass() * pica::Constants<FP>::c();
-                FP3 v = particles[i].momentum / sqrt(pica::sqr(particles[i].getMass()) + (particles[i].momentum / pica::Constants<FP>::c()).norm2());
+                // The code below uses precomputed coefficient:
+                // eCoeff = q * dt / (2 * m * c)
+                FP eCoeff = coeff[particles[i].typeIndex];
+                FP3 eMomentum = electricFieldValue * eCoeff;
+                FP3 um = particles[i].p + eMomentum;
+                FP3 t = magneticFieldValue * (eCoeff / sqrt((double)1.0 + um.norm2()));
+                FP3 uprime = um + pica::cross(um, t);
+                FP3 s = t * ((double)2.0 / ((double)1.0 + t.norm2()));
+                particles[i].p = um + pica::cross(uprime, s) + eMomentum;
+                FP3 v = particles[i].p / sqrt(1.0 + particles[i].p.norm2());
                 particles[i].position += v * dt;
             }
         }
