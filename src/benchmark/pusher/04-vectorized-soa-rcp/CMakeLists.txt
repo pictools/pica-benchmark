@@ -5,7 +5,11 @@ include_directories(
 add_executable(04-pusher-vectorized-soa-rcp
     Main.cpp)
 
-target_compile_options(04-pusher-vectorized-soa-rcp PRIVATE -xCORE-AVX512 -no-prec-div)
+if (WIN32)
+    target_compile_options(04-pusher-vectorized-soa-rcp PRIVATE /QxCORE-AVX512 /Qno-prec-div)
+else()
+    target_compile_options(04-pusher-vectorized-soa-rcp PRIVATE -xCORE-AVX512 -no-prec-div)
+endif()
 
 if (APPLE)
     target_link_libraries(04-pusher-vectorized-soa-rcp

@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.0.0)
 
 project(pica-benchmark)
 
-set(CMAKE_CXX_FLAGS "-g -DNDEBUG -O3 -xCOMMON-AVX512 -qopenmp -qopt-zmm-usage=high")
+if(WIN32)
+    set(CMAKE_CXX_FLAGS "/EHsc /DNDEBUG /Zi /O3 /QxCOMMON-AVX512 /Qopenmp /Qopt-zmm-usage=high")
+else()
+    set(CMAKE_CXX_FLAGS "-g -DNDEBUG -O3 -xCOMMON-AVX512 -qopenmp -qopt-zmm-usage=high")
+endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
