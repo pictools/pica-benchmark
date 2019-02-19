@@ -1,0 +1,48 @@
+CXXFLAGS_COMMON=/EHsc /DNDEBUG /Zi /O3 /Qopenmp /Qopt-zmm-usage=high
+CXXFLAGS= $(CXXFLAGS_COMMON) /QxCOMMON-AVX512
+CXXFLAGS_RCP=$(CXXFLAGS_COMMON) /QxCORE-AVX512 /Qno-prec-div
+INCLUDE_FLAGS = -I ..\pica\include -I ..\src -I ..\thirdParty
+LDFLAGS=/DYNAMICBASE /NXCOMPAT /nologo /DEBUG
+OUT_DIR = ..\bin
+CPP = icl.exe
+LIBTOOL = xilib.exe
+
+all: benchmark-utility 01-pusher-baseline 02-pusher-vectorized 03-pusher-vectorized-soa 01-full-baseline 02-full-supercells 03-full-supercells-aos 04-full-supercells-vec
+
+01-pusher-baseline: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\pusher\01-baseline\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:01-pusher-baseline.pdb /OUT:$(OUT_DIR)\01-pusher-baseline.exe
+
+02-pusher-vectorized: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\pusher\02-vectorized\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:02-pusher-vectorized.pdb /OUT:$(OUT_DIR)\02-pusher-vectorized.exe
+
+03-pusher-vectorized-soa: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\pusher\03-vectorized-soa\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:03-pusher-vectorized-soa.pdb /OUT:$(OUT_DIR)\03-pusher-vectorized-soa.exe
+
+04-pusher-vectorized-soa-rcp: benchmark-utility
+	$(CPP) $(CXXFLAGS_RCP) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\pusher\04-vectorized-soa-rcp\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:04-pusher-vectorized-soa-rcp.pdb /OUT:$(OUT_DIR)\04-pusher-vectorized-soa-rcp.exe
+
+01-full-baseline: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\full\01-baseline\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:01-full-baseline.pdb /OUT:$(OUT_DIR)\01-full-baseline.exe
+
+02-full-supercells: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\full\02-supercells\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:02-full-supercells.pdb /OUT:$(OUT_DIR)\02-full-supercells.exe
+
+03-full-supercells-aos: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\full\03-supercells-aos\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:03-full-supercells-aos.pdb /OUT:$(OUT_DIR)\03-full-supercells-aos.exe
+
+04-full-supercells-vec: benchmark-utility
+	$(CPP) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LFLAGS) ..\src\benchmark\full\04-supercells-vec\Main.cpp /link $(LDFLAGS) benchmark-utility.lib /PDB:04-full-supercells-vec.pdb /OUT:$(OUT_DIR)\04-full-supercells-vec.exe
+
+benchmark-utility: prepare
+	$(CPP) /c $(CXXFLAGS) $(INCLUDE_FLAGS) ..\src\utility\Output.cpp ..\src\utility\Parser.cpp ..\src\utility\Random.cpp ..\src\utility\Timer.cpp
+	$(LIBTOOL) /NOLOGO Output.obj Parser.obj Random.obj Timer.obj /OUT:benchmark-utility.lib
+
+prepare:
+!IF !EXIST($(OUT_DIR))
+	MKDIR $(OUT_DIR)
+!ENDIF
+
+clean:
+!IF EXIST($(OUT_DIR))
+	RMDIR /S /Q $(OUT_DIR)
+!ENDIF
