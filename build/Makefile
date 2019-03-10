@@ -14,7 +14,7 @@ all: 01-pusher-baseline 02-pusher-vectorized 03-pusher-vectorized-soa 01-full-ba
 	$(CXX) -o $(OUT_DIR)/02-pusher-vectorized $(CXXFLAGS) $(INCLUDE_FLAGS) ../src/benchmark/pusher/02-vectorized/Main.cpp benchmark-utility.a
 
 03-pusher-vectorized-soa: benchmark-utility
-	$(CXX) -o $(OUT_DIR)/03-pusher-vectorized $(CXXFLAGS) $(INCLUDE_FLAGS) ../src/benchmark/pusher/03-vectorized-soa/Main.cpp benchmark-utility.a
+	$(CXX) -o $(OUT_DIR)/03-pusher-vectorized-soa $(CXXFLAGS) $(INCLUDE_FLAGS) ../src/benchmark/pusher/03-vectorized-soa/Main.cpp benchmark-utility.a
 
 04-pusher-vectorized-soa-rcp: benchmark-utility
 	$(CXX) -o $(OUT_DIR)/04-pusher-vectorized-soa-rcp $(CXXFLAGS_RCP) $(INCLUDE_FLAGS) ../src/benchmark/pusher/04-vectorized-soa-rcp/Main.cpp benchmark-utility.a
